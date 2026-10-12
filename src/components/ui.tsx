@@ -47,6 +47,15 @@ const ICONS: Record<string, JSX.Element> = {
   ),
   moon: <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />,
   download: <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />,
+  upload: <path d="M12 16V5M7 10l5-5 5 5M5 20h14" />,
+  pause: <path d="M9 5v14M15 5v14" />,
+  play: <path d="M7 5l12 7-12 7z" />,
+  snooze: (
+    <>
+      <circle cx="12" cy="13" r="8" />
+      <path d="M9 10h6l-6 6h6M9 2h6M5 4l2-2M19 4l-2-2" />
+    </>
+  ),
   phone: (
     <>
       <rect x="6.5" y="2.5" width="11" height="19" rx="2.5" />
@@ -129,6 +138,19 @@ export function Empty({ title, body, children }: { title: string; body?: string;
       {body && <p class="mt-1 text-muted">{body}</p>}
       {children && <div class="mt-4 flex flex-wrap justify-center gap-2">{children}</div>}
     </div>
+  );
+}
+
+/** A thin progress bar. Width is set via the style property (not an inline attribute) so the CSP can forbid inline styles. */
+export function Meter({ ratio, label }: { ratio: number; label: string }) {
+  const fill = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (fill.current) fill.current.style.width = `${Math.round(Math.max(0, Math.min(1, ratio)) * 100)}%`;
+  }, [ratio]);
+  return (
+    <span class="block h-1.5 w-full overflow-hidden rounded-full bg-field" role="img" aria-label={label}>
+      <span ref={fill} class="block h-full rounded-full bg-teal transition-[width] duration-500" />
+    </span>
   );
 }
 

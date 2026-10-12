@@ -52,13 +52,16 @@ export function nextDueAt(r: Reminder, now: number): number | null {
   if (!r.enabled) return null;
   const anchor = r.lastFiredAt ?? now;
   let candidate = anchor + r.intervalMin * 60000;
+  // A snooze pushes the next ping no earlier than when the snooze ends.
+  if (r.snoozedUntil && r.snoozedUntil > candidate) candidate = r.snoozedUntil;
   if (candidate < now) candidate = now; // overdue: due as soon as the window allows
   return nextWindowOpen(r, candidate);
 }
 
-/** Should this reminder fire right now? True when it is enabled, due, and inside the window. */
+/** Should this reminder fire right now? True when it is enabled, due, inside the window, and not snoozed. */
 export function isDue(r: Reminder, now: number): boolean {
   if (!r.enabled) return false;
+  if (r.snoozedUntil && now < r.snoozedUntil) return false;
   if (!withinWindow(r, new Date(now))) return false;
   const anchor = r.lastFiredAt ?? now;
   return now - anchor >= r.intervalMin * 60000;

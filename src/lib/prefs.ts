@@ -8,6 +8,8 @@ export interface Prefs {
   installPromptSeen: boolean;
   /** Play a short sound with each ping (in addition to the notification). */
   sound: boolean;
+  /** Do Not Disturb: epoch ms until which ALL reminders are muted. 0 = not paused. */
+  pausedUntil: number;
 }
 
 const KEY = 'yaad:prefs';
@@ -16,6 +18,7 @@ const DEFAULTS: Prefs = {
   notifyAsked: false,
   installPromptSeen: false,
   sound: true,
+  pausedUntil: 0,
 };
 
 let cache: Prefs | null = null;
@@ -47,6 +50,25 @@ export function clearPrefs(): void {
   } catch {
     // Nothing stored.
   }
+}
+
+/** Do Not Disturb is on when a pause time is set and still in the future. */
+export function isPaused(now = Date.now()): boolean {
+  return getPrefs().pausedUntil > now;
+}
+
+/** Mute all reminders for `minutes` from now. */
+export function pauseFor(minutes: number): void {
+  setPrefs({ pausedUntil: Date.now() + minutes * 60000 });
+}
+
+/** Mute until a given epoch ms (used for "until tomorrow morning"). */
+export function pauseUntil(epochMs: number): void {
+  setPrefs({ pausedUntil: epochMs });
+}
+
+export function resume(): void {
+  setPrefs({ pausedUntil: 0 });
 }
 
 /** Apply the theme to <html>. "system" removes the override so the CSS media query decides. */

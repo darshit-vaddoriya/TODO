@@ -1,6 +1,7 @@
 /** Add or edit one reminder. */
 import { useMemo, useState } from 'preact/hooks';
 import { formatInterval, WEEKDAY_LABELS } from '../../lib/format';
+import { permission, ping, requestPermission } from '../../lib/notify';
 import { pingsPerDay } from '../../lib/schedule';
 import { blankReminder, getReminder, remove, save } from '../../lib/store';
 import { toast } from '../../lib/toast';
@@ -37,6 +38,18 @@ export function ReminderForm({ id }: { id?: string }) {
     await remove(existing.id);
     toast('Reminder deleted');
     go('/');
+  };
+
+  const sendTest = async () => {
+    if (permission() !== 'granted') {
+      const result = await requestPermission();
+      if (result !== 'granted') {
+        toast(result === 'denied' ? 'Notifications are blocked in your browser settings.' : 'Allow notifications to see a test ping.', { tone: 'warn' });
+        return;
+      }
+    }
+    await ping({ ...r, title: r.title.trim() || 'Test reminder' });
+    toast('Test ping sent');
   };
 
   const toggleDay = (day: Weekday) => {
@@ -156,6 +169,10 @@ export function ReminderForm({ id }: { id?: string }) {
           </span>
           <Switch checked={r.vibrate} onChange={(on) => set('vibrate', on)} label="Vibrate on ping" />
         </div>
+
+        <button type="button" class="flex w-full items-center justify-center gap-2 text-[0.9375rem] font-bold text-teal" onClick={() => void sendTest()}>
+          <Icon name="bell" size={18} /> Send a test ping now
+        </button>
 
         <div class="flex gap-3 pt-1">
           <button type="button" class="btn btn-primary flex-1" onClick={() => void onSave()} disabled={!canSave}>

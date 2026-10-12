@@ -67,6 +67,13 @@ describe('isDue', () => {
     const now = at(2026, 1, 5, 10);
     expect(isDue(make({ enabled: false, lastFiredAt: now - 999 * 60000 }), now)).toBe(false);
   });
+
+  it('is not due while snoozed, then due after the snooze ends', () => {
+    const now = at(2026, 1, 5, 10);
+    const base = make({ intervalMin: 120, lastFiredAt: now - 200 * 60000 }); // overdue
+    expect(isDue({ ...base, snoozedUntil: now + 5 * 60000 }, now)).toBe(false);
+    expect(isDue({ ...base, snoozedUntil: now - 1000 }, now)).toBe(true);
+  });
 });
 
 describe('nextDueAt', () => {
@@ -86,6 +93,14 @@ describe('nextDueAt', () => {
 
   it('returns null when disabled', () => {
     expect(nextDueAt(make({ enabled: false }), at(2026, 1, 5, 10))).toBeNull();
+  });
+
+  it('never schedules before a snooze ends', () => {
+    const now = at(2026, 1, 5, 10);
+    const snoozedUntil = at(2026, 1, 5, 10, 45);
+    // Interval would put it at 10:30, but the snooze holds it to 10:45.
+    const r = make({ intervalMin: 30, lastFiredAt: at(2026, 1, 5, 10), snoozedUntil });
+    expect(nextDueAt(r, now)).toBe(snoozedUntil);
   });
 
   it('skips days that are not selected', () => {

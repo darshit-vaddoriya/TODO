@@ -55,6 +55,7 @@ export function blankReminder(): Reminder {
     days: [],
     vibrate: true,
     lastFiredAt: now,
+    snoozedUntil: null,
     firedToday: 0,
     firedTodayDate: localDate(),
     createdAt: now,
@@ -96,7 +97,27 @@ export async function patch(id: string, fields: Partial<Reminder>): Promise<void
 
 export async function toggle(id: string, enabled: boolean): Promise<void> {
   // Re-anchor from now when turning on, so the first ping lands one full interval later.
-  await patch(id, enabled ? { enabled, lastFiredAt: Date.now() } : { enabled });
+  await patch(id, enabled ? { enabled, lastFiredAt: Date.now(), snoozedUntil: null } : { enabled });
+}
+
+/** "I did it now": restart the interval from now and count today's completion. */
+export async function markDone(id: string): Promise<void> {
+  const r = getReminder(id);
+  if (!r) return;
+  const today = localDate();
+  const firedToday = (r.firedTodayDate === today ? r.firedToday : 0) + 1;
+  await patch(id, { lastFiredAt: Date.now(), snoozedUntil: null, firedToday, firedTodayDate: today });
+}
+
+/** Snooze a single reminder for `minutes` from now. */
+export async function snooze(id: string, minutes: number): Promise<void> {
+  await patch(id, { snoozedUntil: Date.now() + minutes * 60000 });
+}
+
+/** Re-read from disk into memory. Used after a service worker (snooze action) changes a record. */
+export async function reload(): Promise<void> {
+  reminders = (await getAllReminders()).sort((a, b) => a.createdAt - b.createdAt);
+  changed();
 }
 
 export async function remove(id: string): Promise<void> {
@@ -113,3 +134,42 @@ export async function saveMany(items: Reminder[]): Promise<void> {
 }
 
 export const ALL_DAYS: Weekday[] = [0, 1, 2, 3, 4, 5, 6];
+
+// ---------------------------------------------------------------------------
+// Backup & restore
+// ---------------------------------------------------------------------------
+
+export interface Backup {
+  app: 'yaad';
+  version: 1;
+  exportedAt: number;
+  reminders: Reminder[];
+}
+
+/** A JSON-serialisable snapshot of every reminder, for "Export backup". */
+export function exportBackup(): Backup {
+  return { app: 'yaad', version: 1, exportedAt: Date.now(), reminders: snapshot() };
+}
+
+function isReminder(x: unknown): x is Reminder {
+  const r = x as Reminder;
+  return !!r && typeof r.id === 'string' && typeof r.title === 'string' && typeof r.intervalMin === 'number';
+}
+
+/**
+ * Restore reminders from a parsed backup. Merges by id (incoming wins) and
+ * re-anchors each imported reminder so it doesn't fire a backlog immediately.
+ * Returns how many were imported, or throws on an unrecognised file.
+ */
+export async function importBackup(data: unknown): Promise<number> {
+  const backup = data as Partial<Backup>;
+  if (!backup || backup.app !== 'yaad' || !Array.isArray(backup.reminders)) {
+    throw new Error('Not a Yaad backup file.');
+  }
+  const now = Date.now();
+  const valid = backup.reminders.filter(isReminder).map((r) => ({ ...r, lastFiredAt: now, snoozedUntil: null }));
+  if (valid.length === 0) return 0;
+  await putReminders(valid);
+  await reload();
+  return valid.length;
+}

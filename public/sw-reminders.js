@@ -69,8 +69,34 @@ self.addEventListener('periodicsync', (event) => {
   if (event.tag === 'yaad-catchup') event.waitUntil(catchUp());
 });
 
+/** Write a change to one reminder, then tell any open page to re-read it. */
+async function updateReminder(id, fields) {
+  const db = await openExistingDb();
+  if (!db || !db.objectStoreNames.contains('reminders')) return db && db.close();
+  const store = db.transaction('reminders', 'readwrite').objectStore('reminders');
+  const reminder = await request(store.get(id));
+  if (reminder) await request(store.put({ ...reminder, ...fields }));
+  db.close();
+  const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  for (const w of windows) w.postMessage({ type: 'reminder-changed', id });
+}
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  // Notification tags are "yaad-<id>" (see notify.ts).
+  const id = String(event.notification.tag || '').replace(/^yaad-/, '');
+
+  if (event.action === 'snooze' && id) {
+    event.waitUntil(updateReminder(id, { snoozedUntil: Date.now() + 10 * 60000 }));
+    return;
+  }
+  if (event.action === 'done' && id) {
+    // Restart the interval from now (same as "I did it" in the app).
+    event.waitUntil(updateReminder(id, { lastFiredAt: Date.now(), snoozedUntil: null }));
+    return;
+  }
+
+  // A plain tap opens / focuses the app.
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
       const open = windows.find((w) => new URL(w.url).origin === self.location.origin);

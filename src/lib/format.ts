@@ -56,6 +56,14 @@ export function formatTimeOfDay(d: Date): string {
   return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(d);
 }
 
+/** Epoch ms at the next day's given hour (default 8am) — for "pause until tomorrow morning". */
+export function tomorrowAt(hour = 8): number {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(hour, 0, 0, 0);
+  return d.getTime();
+}
+
 export const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 export const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 

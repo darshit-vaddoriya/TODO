@@ -10,8 +10,9 @@
  */
 import { localDate } from './format';
 import { ping } from './notify';
+import { getPrefs } from './prefs';
 import { isDue } from './schedule';
-import { saveMany, snapshot } from './store';
+import { reload, saveMany, snapshot } from './store';
 import type { Reminder } from './types';
 
 const TICK_MS = 20_000;
@@ -23,11 +24,13 @@ function rolledOver(r: Reminder, today: string): Reminder {
 }
 
 export async function tick(now = Date.now()): Promise<void> {
+  // Do Not Disturb: everything is muted, but let the date-roll reset below still run.
+  const paused = getPrefs().pausedUntil > now;
   const today = localDate(new Date(now));
   const updates: Reminder[] = [];
   for (const current of snapshot()) {
     const r = rolledOver(current, today);
-    if (isDue(r, now)) {
+    if (!paused && isDue(r, now)) {
       void ping(r);
       updates.push({ ...r, lastFiredAt: now, firedToday: r.firedToday + 1, firedTodayDate: today });
     } else if (r !== current) {
@@ -44,10 +47,17 @@ export function startScheduler(): void {
   setTimeout(() => void tick(), 1500);
   timer = setInterval(() => void tick(), TICK_MS);
   document.addEventListener('visibilitychange', onVisible);
+  // The service worker posts this after a "Snooze" notification action writes to IndexedDB.
+  navigator.serviceWorker?.addEventListener('message', onSwMessage);
 }
 
 function onVisible() {
-  if (document.visibilityState === 'visible') void tick();
+  // Pull in any change a background notification action made, then re-check.
+  if (document.visibilityState === 'visible') void reload().then(() => tick());
+}
+
+function onSwMessage(event: MessageEvent) {
+  if ((event.data as { type?: string })?.type === 'reminder-changed') void reload();
 }
 
 export function stopScheduler(): void {
@@ -56,4 +66,5 @@ export function stopScheduler(): void {
     timer = null;
   }
   document.removeEventListener('visibilitychange', onVisible);
+  navigator.serviceWorker?.removeEventListener('message', onSwMessage);
 }

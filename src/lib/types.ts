@@ -28,6 +28,8 @@ export interface Reminder {
   vibrate: boolean;
   /** When this reminder last pinged, epoch ms. null = never fired yet. */
   lastFiredAt: number | null;
+  /** If set and in the future, the reminder is snoozed until this epoch ms (no pings before it). */
+  snoozedUntil?: number | null;
   /** How many times it has pinged today (resets at local midnight). For the "done so far" count. */
   firedToday: number;
   /** The local date ("YYYY-MM-DD") firedToday counts for. */

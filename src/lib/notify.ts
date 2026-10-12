@@ -79,8 +79,8 @@ export async function ping(reminder: Reminder): Promise<void> {
     icon: '/icons/icon-192.png',
     badge: '/icons/badge-72.png',
     tag: `yaad-${reminder.id}`,
-    // renotify so repeated pings with the same tag still alert.
-    ...({ renotify: true } as NotificationOptions),
+    // renotify so repeated pings with the same tag still alert; actions need a service worker.
+    ...({ renotify: true, actions: [{ action: 'snooze', title: 'Snooze 10 min' }, { action: 'done', title: 'Done' }] } as NotificationOptions),
   };
 
   if (permission() === 'granted') {
