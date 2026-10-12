@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.astro/
+dev-dist/
+*.log
+.DS_Store
+public/icons/

@@ -1,0 +1,47 @@
+---
+import '../styles/global.css';
+// Preloaded so the first layout already has the real font (no fallback-font lookup, no layout shift).
+import manropeLatin from '@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2?url';
+
+// Strict CSP: only same-origin files, no inline scripts or styles, no outside connections.
+// Applied to production builds only (the Vite dev server needs inline scripts for hot reload).
+const csp = [
+  "default-src 'none'",
+  "script-src 'self'",
+  "style-src 'self'",
+  "img-src 'self' blob:",
+  "font-src 'self'",
+  "connect-src 'self'",
+  "worker-src 'self'",
+  "manifest-src 'self'",
+  "base-uri 'none'",
+  "form-action 'none'",
+  "object-src 'none'",
+].join('; ');
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    {import.meta.env.PROD && <meta http-equiv="Content-Security-Policy" content={csp} />}
+    <meta name="referrer" content="no-referrer" />
+    <title>Yaad — gentle reminders</title>
+    <meta name="description" content="Water, eyes, posture and your own task reminders, on a simple interval. Everything stays on your phone." />
+    <meta name="theme-color" content="#0b0f0e" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preload" href={manropeLatin} as="font" type="font/woff2" crossorigin />
+  </head>
+  <body>
+    <div id="app">
+      <noscript><p class="p-6">Yaad needs JavaScript to run.</p></noscript>
+    </div>
+    <script>
+      import '../main';
+    </script>
+  </body>
+</html>
