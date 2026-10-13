@@ -87,6 +87,7 @@ const ICONS: Record<string, JSX.Element> = {
     </>
   ),
   repeat: <path d="M17 2l3 3-3 3M3 11V9a4 4 0 0 1 4-4h13M7 22l-3-3 3-3M21 13v2a4 4 0 0 1-4 4H4" />,
+  grip: <path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" />,
 };
 
 export function Icon({ name, size = 22, class: cls = '' }: { name: keyof typeof ICONS | string; size?: number; class?: string }) {
@@ -320,6 +321,111 @@ export function SwipeRow({
       >
         {children}
       </div>
+    </div>
+  );
+}
+
+/**
+ * A pointer-driven reorderable list. Each rendered row gets a `handle` to
+ * spread onto its drag grip; pressing the grip and moving the pointer
+ * reorders the list live (crossing a neighbour's midpoint swaps it), and the
+ * new id order is committed via `onReorder` on release. Works with touch and
+ * mouse; HTML5 drag-and-drop is avoided because it is unreliable on mobile.
+ */
+export interface DragHandle {
+  onPointerDown: (e: PointerEvent) => void;
+  'aria-label': string;
+}
+
+export function ReorderList<T extends { id: string }>({
+  items,
+  onReorder,
+  render,
+}: {
+  items: T[];
+  onReorder: (ids: string[]) => void;
+  render: (item: T, handle: DragHandle, dragging: boolean) => ComponentChildren;
+}) {
+  const [ids, setIds] = useState<string[]>(() => items.map((i) => i.id));
+  const [dragId, setDragId] = useState<string | null>(null);
+  const rows = useRef(new Map<string, HTMLElement>());
+  const cb = useRef(onReorder);
+  cb.current = onReorder;
+
+  // Keep in sync with the source list, except mid-drag (so a re-render doesn't fight the finger).
+  useEffect(() => {
+    if (!dragId) setIds(items.map((i) => i.id));
+  }, [items, dragId]);
+
+  useEffect(() => {
+    if (!dragId) return;
+    const move = (e: PointerEvent) => {
+      e.preventDefault();
+      setIds((cur) => {
+        const di = cur.indexOf(dragId);
+        if (di < 0) return cur;
+        let target = di;
+        for (let i = 0; i < cur.length; i++) {
+          const el = rows.current.get(cur[i]);
+          if (!el) continue;
+          const r = el.getBoundingClientRect();
+          const mid = r.top + r.height / 2;
+          if (i < di && e.clientY < mid) {
+            target = i;
+            break;
+          }
+          if (i > di && e.clientY > mid) target = i;
+        }
+        if (target === di) return cur;
+        const next = [...cur];
+        const [moved] = next.splice(di, 1);
+        next.splice(target, 0, moved);
+        return next;
+      });
+    };
+    const up = () => {
+      setDragId(null);
+      setIds((cur) => {
+        cb.current(cur);
+        return cur;
+      });
+    };
+    addEventListener('pointermove', move, { passive: false });
+    addEventListener('pointerup', up);
+    addEventListener('pointercancel', up);
+    return () => {
+      removeEventListener('pointermove', move);
+      removeEventListener('pointerup', up);
+      removeEventListener('pointercancel', up);
+    };
+  }, [dragId]);
+
+  return (
+    <div class={`space-y-2.5 ${dragId ? 'select-none' : ''}`}>
+      {ids.map((id) => {
+        const item = items.find((i) => i.id === id);
+        if (!item) return null;
+        const handle: DragHandle = {
+          onPointerDown: (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDragId(id);
+          },
+          'aria-label': 'Drag to reorder',
+        };
+        return (
+          <div
+            key={id}
+            ref={(el) => {
+              if (el) rows.current.set(id, el);
+              else rows.current.delete(id);
+            }}
+            class={dragId === id ? 'relative z-10 scale-[1.02] opacity-90 shadow-lg transition-transform' : ''}
+          >
+            {render(item, handle, dragId === id)}
+          </div>
+        );
+      })}
     </div>
   );
 }

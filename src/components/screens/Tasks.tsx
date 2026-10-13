@@ -4,6 +4,7 @@
  * Upcoming / No date smart views. Each task expands to edit its details,
  * notes, tags and subtasks.
  */
+import type { ComponentChildren } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { daysBetween, repeatLabel } from '../../lib/task-model';
 import {
@@ -17,17 +18,18 @@ import {
   setTaskNotes,
   setTaskPriority,
   setTaskRepeat,
+  reorderTasks,
   setTaskTags,
   toggleSubtask,
   toggleTask,
 } from '../../lib/tasks';
 import { localDate } from '../../lib/format';
 import { parseQuickAdd } from '../../lib/quick-parse';
-import { allTags, buildView, EMPTY_FILTER, SORT_LABELS, type SortKey, type TaskFilter } from '../../lib/task-view';
+import { allTags, buildView, EMPTY_FILTER, matchesFilter, SORT_LABELS, sortTasks, type SortKey, type TaskFilter } from '../../lib/task-view';
 import { toast } from '../../lib/toast';
 import type { Priority, RepeatRule, Task, Weekday } from '../../lib/types';
 import { useTasks } from '../router';
-import { Empty, Header, Icon, Page, Section, Segmented, SwipeRow } from '../ui';
+import { Empty, Header, Icon, Page, ReorderList, Section, Segmented, SwipeRow } from '../ui';
 
 /** Delete a task but offer a few seconds to undo via a toast. */
 function deleteWithUndo(task: Task): void {
@@ -84,7 +86,7 @@ function dueLabel(dueDate: string, today: string): string {
 
 // --- A single task ---------------------------------------------------------
 
-function TaskRow({ task, today }: { task: Task; today: string }) {
+function TaskRow({ task, today, handle }: { task: Task; today: string; handle?: ComponentChildren }) {
   const [open, setOpen] = useState(false);
   const [subTitle, setSubTitle] = useState('');
   const pr = PRIORITY_META[task.priority];
@@ -98,6 +100,7 @@ function TaskRow({ task, today }: { task: Task; today: string }) {
 
   const header = (
     <div class="flex items-center gap-3 bg-surface px-4 py-3.5">
+        {handle}
         <button
           type="button"
           role="checkbox"
@@ -137,7 +140,7 @@ function TaskRow({ task, today }: { task: Task; today: string }) {
 
   return (
     <div class="overflow-hidden rounded-[16px] bg-surface">
-      {open ? (
+      {open || handle ? (
         header
       ) : (
         <SwipeRow onSwipeRight={() => void toggleTask(task.id, !task.done)} onSwipeLeft={() => deleteWithUndo(task)}>
@@ -321,6 +324,10 @@ export function Tasks() {
   const sub = tasks.length > 0 ? `${view.done.length} of ${tasks.length} done` : undefined;
   const filtering = filter.search.trim() !== '' || filter.tag !== null || filter.priority !== null;
 
+  // Manual sort (unfiltered) shows one flat, drag-reorderable list.
+  const manualActive = useMemo(() => sortTasks(tasks.filter((t) => !t.done && matchesFilter(t, filter)), 'manual'), [tasks, filter]);
+  const reorderable = sort === 'manual' && !filtering && manualActive.length > 1;
+
   return (
     <>
       <Header title="Tasks" sub={sub} />
@@ -368,15 +375,35 @@ export function Tasks() {
               </Section>
             )}
 
-            {view.groups.map((g) => (
-              <Section key={g.key} title={`${g.title} (${g.tasks.length})`}>
-                <div class="space-y-2.5">
-                  {g.tasks.map((t) => (
-                    <TaskRow key={t.id} task={t} today={today} />
-                  ))}
-                </div>
+            {reorderable ? (
+              <Section title={`To do (${manualActive.length})`} action={<span class="text-[0.8125rem] font-semibold text-muted">Drag to reorder</span>}>
+                <ReorderList
+                  items={manualActive}
+                  onReorder={(ids) => void reorderTasks(ids)}
+                  render={(t, handle) => (
+                    <TaskRow
+                      task={t}
+                      today={today}
+                      handle={
+                        <button type="button" class="grid size-8 shrink-0 cursor-grab touch-none place-items-center rounded-lg text-muted active:bg-field" {...handle}>
+                          <Icon name="grip" size={18} />
+                        </button>
+                      }
+                    />
+                  )}
+                />
               </Section>
-            ))}
+            ) : (
+              view.groups.map((g) => (
+                <Section key={g.key} title={`${g.title} (${g.tasks.length})`}>
+                  <div class="space-y-2.5">
+                    {g.tasks.map((t) => (
+                      <TaskRow key={t.id} task={t} today={today} />
+                    ))}
+                  </div>
+                </Section>
+              ))
+            )}
 
             {view.done.length > 0 && (
               <Section

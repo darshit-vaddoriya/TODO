@@ -28,6 +28,9 @@ in the app's Settings screen and written into backup files.
 - **Swipe actions.** Swipe a task right to complete it, left to delete it (with
   the same Undo toast); the coloured action shows behind the row as it moves,
   and vertical scrolling still works.
+- **Drag to reorder.** With the **Manual** sort selected (and no filter active),
+  the to-do list shows a drag grip on each row; press and drag to reorder, and
+  the new order is saved. Works with touch and mouse.
 
 ### Changed
 - **Task data model groundwork** — tasks now carry notes, a due date, a priority,
