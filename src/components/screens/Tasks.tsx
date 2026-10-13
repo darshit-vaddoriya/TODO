@@ -27,7 +27,7 @@ import { allTags, buildView, EMPTY_FILTER, SORT_LABELS, type SortKey, type TaskF
 import { toast } from '../../lib/toast';
 import type { Priority, RepeatRule, Task, Weekday } from '../../lib/types';
 import { useTasks } from '../router';
-import { Empty, Header, Icon, Page, Section, Segmented } from '../ui';
+import { Empty, Header, Icon, Page, Section, Segmented, SwipeRow } from '../ui';
 
 /** Delete a task but offer a few seconds to undo via a toast. */
 function deleteWithUndo(task: Task): void {
@@ -96,9 +96,8 @@ function TaskRow({ task, today }: { task: Task; today: string }) {
     setSubTitle('');
   };
 
-  return (
-    <div class="card">
-      <div class="flex items-center gap-3">
+  const header = (
+    <div class="flex items-center gap-3 bg-surface px-4 py-3.5">
         <button
           type="button"
           role="checkbox"
@@ -134,9 +133,20 @@ function TaskRow({ task, today }: { task: Task; today: string }) {
           <Icon name="chevron-down" size={18} class={open ? 'rotate-180 transition-transform' : 'transition-transform'} />
         </button>
       </div>
+  );
+
+  return (
+    <div class="overflow-hidden rounded-[16px] bg-surface">
+      {open ? (
+        header
+      ) : (
+        <SwipeRow onSwipeRight={() => void toggleTask(task.id, !task.done)} onSwipeLeft={() => deleteWithUndo(task)}>
+          {header}
+        </SwipeRow>
+      )}
 
       {open && (
-        <div class="mt-3 space-y-3 border-t border-rule pt-3">
+        <div class="space-y-3 border-t border-rule px-4 pb-4 pt-3">
           <div>
             <span class="section-label mb-1.5 block">Priority</span>
             <Segmented label="Priority" options={PRIORITY_OPTS} value={task.priority} onChange={(v) => void setTaskPriority(task.id, v)} />

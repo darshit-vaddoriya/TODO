@@ -25,6 +25,9 @@ in the app's Settings screen and written into backup files.
   exactly as it was.
 - **Keyboard shortcuts** on the Tasks screen: `n` to jump to the add box, `/`
   to jump to search.
+- **Swipe actions.** Swipe a task right to complete it, left to delete it (with
+  the same Undo toast); the coloured action shows behind the row as it moves,
+  and vertical scrolling still works.
 
 ### Changed
 - **Task data model groundwork** — tasks now carry notes, a due date, a priority,

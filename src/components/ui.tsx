@@ -1,6 +1,7 @@
 /** Small shared UI pieces. Plain Preact + Tailwind tokens from global.css. */
 import type { ComponentChildren, JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { clampDrag, resolveSwipe } from '../lib/swipe';
 import { dismissToast, onToasts, type Toast } from '../lib/toast';
 import { back } from './router';
 
@@ -222,6 +223,103 @@ export function Segmented<T extends string | number>({ options, value, onChange,
           {o.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+/**
+ * A horizontally swipeable row. Swipe right to fire `onSwipeRight` (complete),
+ * left for `onSwipeLeft` (delete); the coloured action peeks out behind the
+ * foreground as it moves. Vertical drags fall through to page scroll, and taps
+ * still reach the buttons inside. Transforms are set imperatively on refs so
+ * the strict CSP (no inline styles) is satisfied.
+ */
+export function SwipeRow({
+  onSwipeRight,
+  onSwipeLeft,
+  children,
+}: {
+  onSwipeRight?: () => void;
+  onSwipeLeft?: () => void;
+  children: ComponentChildren;
+}) {
+  const fg = useRef<HTMLDivElement>(null);
+  const right = useRef<HTMLDivElement>(null); // revealed on a right swipe (complete)
+  const left = useRef<HTMLDivElement>(null); // revealed on a left swipe (delete)
+  const st = useRef({ startX: 0, startY: 0, dx: 0, locked: null as boolean | null, active: false, width: 0, pid: -1 });
+
+  const paint = (d: number) => {
+    if (fg.current) fg.current.style.transform = d ? `translateX(${d}px)` : '';
+    if (right.current) right.current.style.opacity = d > 0 ? '1' : '0';
+    if (left.current) left.current.style.opacity = d < 0 ? '1' : '0';
+  };
+  const reset = (animate: boolean) => {
+    const s = st.current;
+    if (fg.current) fg.current.style.transition = animate ? 'transform 0.18s ease' : '';
+    s.active = false;
+    s.dx = 0;
+    s.locked = null;
+    paint(0);
+  };
+
+  const onDown = (e: PointerEvent) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const s = st.current;
+    s.startX = e.clientX;
+    s.startY = e.clientY;
+    s.dx = 0;
+    s.locked = null;
+    s.active = true;
+    s.pid = e.pointerId;
+    s.width = fg.current?.offsetWidth ?? 0;
+    if (fg.current) fg.current.style.transition = '';
+  };
+  const onMove = (e: PointerEvent) => {
+    const s = st.current;
+    if (!s.active) return;
+    const dx = e.clientX - s.startX;
+    const dy = e.clientY - s.startY;
+    if (s.locked === null) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      s.locked = Math.abs(dx) > Math.abs(dy);
+      if (s.locked) fg.current?.setPointerCapture?.(e.pointerId);
+      else {
+        s.active = false; // a vertical drag — let the page scroll
+        return;
+      }
+    }
+    if (!s.locked) return;
+    e.preventDefault();
+    s.dx = clampDrag(dx, s.width);
+    paint(s.dx);
+  };
+  const onUp = () => {
+    const s = st.current;
+    if (!s.active && s.dx === 0) return;
+    const action = resolveSwipe(s.dx, s.width);
+    reset(true);
+    if (action === 'right') onSwipeRight?.();
+    else if (action === 'left') onSwipeLeft?.();
+  };
+
+  return (
+    <div class="relative overflow-hidden rounded-[16px]">
+      <div ref={right} class="pointer-events-none absolute inset-0 flex items-center justify-start bg-teal px-5 text-on-teal opacity-0" aria-hidden="true">
+        <Icon name="check" size={22} />
+      </div>
+      <div ref={left} class="pointer-events-none absolute inset-0 flex items-center justify-end bg-accent px-5 text-on-accent opacity-0" aria-hidden="true">
+        <Icon name="trash" size={22} />
+      </div>
+      <div
+        ref={fg}
+        class="relative touch-pan-y select-none"
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={() => reset(false)}
+      >
+        {children}
+      </div>
     </div>
   );
 }
