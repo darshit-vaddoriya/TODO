@@ -5,7 +5,7 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
-## [Unreleased]
+## [1.3.0] — 2026-10-13
 
 ### Added
 - **A full task manager.** The Tasks screen now has priorities (None / Low /
@@ -31,15 +31,19 @@ in the app's Settings screen and written into backup files.
 - **Drag to reorder.** With the **Manual** sort selected (and no filter active),
   the to-do list shows a drag grip on each row; press and drag to reorder, and
   the new order is saved. Works with touch and mouse.
+- **Due-date notifications.** While Yaad is open, a task that is due today or
+  overdue pings once a day (respecting Do Not Disturb, and not before 7 am).
+- **Lists (projects).** Group tasks into named lists with a chip row (All /
+  Inbox / your lists / + New); new tasks join the selected list, each task can
+  be moved between lists, and deleting a list sends its tasks back to the Inbox.
 
 ### Changed
-- **Task data model groundwork** — tasks now carry notes, a due date, a priority,
-  tags, nested subtasks, a manual sort order, and a richer repeat rule (one-off,
+- **Task data model** now carries notes, a due date, a priority, tags, nested
+  subtasks, a manual sort order, a list, and a richer repeat rule (one-off,
   daily, weekly on chosen weekdays, or every N days) in place of the old
   `daily` flag. Stored tasks and imported backups are migrated forward
-  automatically (IndexedDB schema v3); backup files are now version 3 and older
-  backups still import. No visible change to the Tasks screen yet — the UI that
-  uses these fields comes next.
+  automatically (IndexedDB schema v4); backup files are now version 4 and older
+  backups still import.
 
 ## [1.2.0] — 2026-10-13
 
