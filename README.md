@@ -17,15 +17,26 @@ on your device.
   interval. See [RESEARCH.md](RESEARCH.md).
 - **System notifications** with an optional soft chime and vibration, plus a
   **Snooze 10 min** action and a **"Did it"** button with per-reminder daily progress.
-- **Daily tasks** — a to-do list with one-off or repeat-every-day tasks.
+- **A full task manager.** A to-do list with **priorities**, **due dates**,
+  **repeat rules** (one-off / daily / weekly), **tags**, **notes** and nested
+  **subtasks**. Tasks group into **Overdue / Today / Upcoming / No date** smart
+  views; search, sort (manual, due, priority, newest, A–Z) and filter by tag.
+- **Lists.** Group tasks into named lists (projects); unfiled tasks live in the
+  Inbox.
+- **Quick-add** in plain language — `Pay rent tomorrow !high #home` fills in the
+  due date, priority and tags for you.
+- **Gestures & shortcuts.** Swipe a task right to complete, left to delete (with
+  Undo); drag to reorder in Manual sort; `n` / `/` keyboard shortcuts.
+- **Due-date pings.** A task due today or overdue notifies once a day while the
+  app is open (respecting Do Not Disturb).
 - **Report** — today's activity, a 7-day trend, per-reminder counts, export to text.
 - **Do Not Disturb** — mute everything for 1h / 3h / until tomorrow morning.
 - **Test notification** in Settings to check pings actually reach you.
-- **Backup & restore** — export/import all reminders and tasks as a JSON file.
-- **Private & offline.** No account, no server. Reminders live in the browser's
+- **Backup & restore** — export/import all reminders, tasks and lists as a JSON file.
+- **Private & offline.** No account, no server. Everything lives in the browser's
   IndexedDB on this device only. Installable to the home screen.
 
-See [CHANGELOG.md](CHANGELOG.md) for version history (current: **v1.2.0**).
+See [CHANGELOG.md](CHANGELOG.md) for version history (current: **v1.3.0**).
 
 ## How reminders fire (and the honest limit)
 
@@ -66,20 +77,27 @@ nothing binary is committed.
 ```
 src/
   lib/
-    types.ts        Reminder + Preset shapes
-    schedule.ts     pure due / next-due logic  (unit-tested)
-    scheduler.ts    the in-page ticker that fires pings
+    types.ts        Reminder · Task · Project · Preset shapes
+    schedule.ts     pure reminder due / next-due logic  (unit-tested)
+    scheduler.ts    the in-page ticker that fires reminder + task pings
     notify.ts       permission + the actual notification/sound/vibration
-    store.ts        in-memory list mirrored to IndexedDB
-    db.ts           IndexedDB wrapper (idb)
+    store.ts        reminders in memory mirrored to IndexedDB + backup
+    db.ts           IndexedDB wrapper (idb), schema migrations
+    tasks.ts        the to-do store (memory ↔ IndexedDB)
+    task-model.ts   task defaults, record migration, repeat logic  (unit-tested)
+    task-view.ts    task filter / sort / smart-view grouping  (unit-tested)
+    task-schedule.ts when a task's due notification fires  (unit-tested)
+    quick-parse.ts  natural-language quick-add parsing  (unit-tested)
+    swipe.ts        swipe-gesture thresholds  (unit-tested)
+    projects.ts     the lists store (memory ↔ IndexedDB)
     presets.ts      research-backed wellness reminders
     format.ts       time / interval / day formatting  (unit-tested)
     prefs.ts        theme + small settings (localStorage)
   components/
     App.tsx         load → start scheduler → route
-    router.ts       hash routing, useData / useNow hooks
-    ui.tsx          shared pieces (Header, Switch, Segmented, Dialog, …)
-    screens/        Home · ReminderForm · Presets · Settings
+    router.ts       hash routing, useData / useTasks / useProjects hooks
+    ui.tsx          shared pieces (Header, Segmented, Dialog, SwipeRow, ReorderList, …)
+    screens/        Home · ReminderForm · Tasks · Report · Presets · Settings
 public/
   sw-reminders.js   background catch-up handler (imported into the SW)
 ```

@@ -3,9 +3,10 @@
  * scheduler and store survive navigation — a full page load would restart both.
  */
 import { useEffect, useState } from 'preact/hooks';
+import { projectsSnapshot, subscribeProjects } from '../lib/projects';
 import { snapshot, subscribe } from '../lib/store';
 import { subscribeTasks, tasksSnapshot } from '../lib/tasks';
-import type { Reminder, Task } from '../lib/types';
+import type { Project, Reminder, Task } from '../lib/types';
 
 function parse(hash: string): string[] {
   return hash.replace(/^#\/?/, '').split('/').filter(Boolean);
@@ -54,6 +55,13 @@ export function useTasks(): Task[] {
   const [, setTick] = useState(0);
   useEffect(() => subscribeTasks(() => setTick((n) => n + 1)), []);
   return tasksSnapshot();
+}
+
+/** Re-render whenever the list of projects changes. */
+export function useProjects(): Project[] {
+  const [, setTick] = useState(0);
+  useEffect(() => subscribeProjects(() => setTick((n) => n + 1)), []);
+  return projectsSnapshot();
 }
 
 /** A ticking clock so "next in …" labels count down without a manual refresh. */

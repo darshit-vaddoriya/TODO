@@ -3,6 +3,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { onPwaChange, pendingUpdate } from '../lib/pwa';
 import { startScheduler } from '../lib/scheduler';
 import { initStats } from '../lib/stats';
+import { loadProjects } from '../lib/projects';
 import { loadAll } from '../lib/store';
 import { loadTasks } from '../lib/tasks';
 import { toast } from '../lib/toast';
@@ -77,7 +78,7 @@ export function App() {
   const route = useRoute();
 
   useEffect(() => {
-    void Promise.all([loadAll(), loadTasks(), initStats()]).then(() => {
+    void Promise.all([loadAll(), loadTasks(), loadProjects(), initStats()]).then(() => {
       setReady(true);
       startScheduler();
     });

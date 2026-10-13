@@ -1,6 +1,6 @@
 /** Permission handling and the actual ping: a system notification, plus optional sound and vibration. */
 import { getPrefs } from './prefs';
-import type { Reminder } from './types';
+import type { Reminder, Task } from './types';
 
 export function notificationsSupported(): boolean {
   return typeof Notification !== 'undefined';
@@ -98,6 +98,43 @@ export async function ping(reminder: Reminder): Promise<void> {
   }
 
   if ((reminder.vibrate ?? true) && 'vibrate' in navigator) {
+    try {
+      navigator.vibrate([120, 60, 120]);
+    } catch {
+      // Not supported.
+    }
+  }
+  if (getPrefs().sound) playChime();
+}
+
+/**
+ * Fire a task's "due" notification. Date-only, so the body says due vs overdue
+ * rather than a time. Uses the same notification path as reminders.
+ */
+export async function pingTask(task: Task, today: string): Promise<void> {
+  const overdue = !!task.dueDate && task.dueDate < today;
+  const title = `📋 ${task.title}`;
+  const options: NotificationOptions = {
+    body: overdue ? 'This task is overdue.' : 'This task is due today.',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/badge-72.png',
+    tag: `yaad-task-${task.id}`,
+    ...({ renotify: true } as NotificationOptions),
+  };
+  if (permission() === 'granted') {
+    try {
+      const reg = await navigator.serviceWorker?.ready;
+      if (reg) await reg.showNotification(title, options);
+      else new Notification(title, options);
+    } catch {
+      try {
+        new Notification(title, options);
+      } catch {
+        // Notification failed entirely; nothing else to do.
+      }
+    }
+  }
+  if ('vibrate' in navigator) {
     try {
       navigator.vibrate([120, 60, 120]);
     } catch {

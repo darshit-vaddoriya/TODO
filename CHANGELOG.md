@@ -5,6 +5,46 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
+## [1.3.0] — 2026-10-13
+
+### Added
+- **A full task manager.** The Tasks screen now has priorities (None / Low /
+  Medium / High with coloured markers), **due dates**, and per-task **repeat
+  rules** (once / daily / weekly). Tasks group into **smart views** — Overdue,
+  Today, Upcoming, No date — and completed tasks sit below.
+- **Search, sort and tag filter.** Search across title, notes, tags and
+  subtasks; sort by manual order, due date, priority, newest, or A–Z; and
+  filter by tag chips.
+- **Inline editing & subtasks.** Tap a task to expand it and edit its priority,
+  due date, repeat, notes and tags, and add a **nested subtask checklist** with
+  its own progress count.
+- **Natural-language quick-add.** Type `Pay rent tomorrow !high #home` and the
+  due date, priority and tags are pulled out automatically; anything not
+  recognised stays in the title.
+- **Undo delete.** Deleting a task shows an **Undo** toast that restores it
+  exactly as it was.
+- **Keyboard shortcuts** on the Tasks screen: `n` to jump to the add box, `/`
+  to jump to search.
+- **Swipe actions.** Swipe a task right to complete it, left to delete it (with
+  the same Undo toast); the coloured action shows behind the row as it moves,
+  and vertical scrolling still works.
+- **Drag to reorder.** With the **Manual** sort selected (and no filter active),
+  the to-do list shows a drag grip on each row; press and drag to reorder, and
+  the new order is saved. Works with touch and mouse.
+- **Due-date notifications.** While Yaad is open, a task that is due today or
+  overdue pings once a day (respecting Do Not Disturb, and not before 7 am).
+- **Lists (projects).** Group tasks into named lists with a chip row (All /
+  Inbox / your lists / + New); new tasks join the selected list, each task can
+  be moved between lists, and deleting a list sends its tasks back to the Inbox.
+
+### Changed
+- **Task data model** now carries notes, a due date, a priority, tags, nested
+  subtasks, a manual sort order, a list, and a richer repeat rule (one-off,
+  daily, weekly on chosen weekdays, or every N days) in place of the old
+  `daily` flag. Stored tasks and imported backups are migrated forward
+  automatically (IndexedDB schema v4); backup files are now version 4 and older
+  backups still import.
+
 ## [1.2.0] — 2026-10-13
 
 ### Added

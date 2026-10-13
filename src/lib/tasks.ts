@@ -1,12 +1,14 @@
 /**
- * The to-do list. Tasks live in memory and mirror to IndexedDB. A "daily" task
- * resets to not-done at local midnight so it comes back each morning; a one-off
- * task stays as it is. Completing a task is logged for the Report screen.
+ * The to-do list. Tasks live in memory and mirror to IndexedDB. A repeating
+ * task resets to not-done at local midnight on the days it next comes due, so
+ * it reappears; a one-off task stays as it is. Completing a task is logged for
+ * the Report screen.
  */
 import { deleteTask, getAllTasks, putTask, putTasks } from './db';
 import { localDate } from './format';
 import { bump } from './stats';
-import type { Task } from './types';
+import { isDueOn, newTaskId, normalizeTask } from './task-model';
+import type { Priority, RepeatRule, Task } from './types';
 
 let tasks: Task[] = [];
 let loaded = false;
@@ -22,16 +24,14 @@ export function tasksSnapshot(): Task[] {
   return tasks;
 }
 
-function newId(): string {
-  return crypto.randomUUID();
-}
+const byOrder = (a: Task, b: Task) => a.order - b.order;
 
-/** A daily task whose done-state is from an earlier day is shown fresh (unchecked) today. */
+/** A repeating task whose done-state is from an earlier day is shown fresh (unchecked) on a day it's next due. */
 function freshen(list: Task[], today: string): { list: Task[]; changed: Task[] } {
   const toReset: Task[] = [];
   const next = list.map((t) => {
-    if (t.daily && t.done && t.doneDate !== today) {
-      const reset = { ...t, done: false, doneDate: today };
+    if (t.repeat.kind !== 'none' && t.done && t.doneDate !== today && isDueOn(t, today)) {
+      const reset = { ...t, done: false, completedAt: null, doneDate: today, updatedAt: Date.now() };
       toReset.push(reset);
       return reset;
     }
@@ -40,9 +40,9 @@ function freshen(list: Task[], today: string): { list: Task[]; changed: Task[] }
   return { list: next, changed: toReset };
 }
 
-export async function loadTasks(): Promise<void> {
-  if (loaded) return;
-  const stored = (await getAllTasks()).sort((a, b) => a.createdAt - b.createdAt);
+/** Read every task from disk, normalize legacy records, apply the daily reset, and cache in memory. */
+async function hydrate(): Promise<void> {
+  const stored = (await getAllTasks()).map((t) => normalizeTask(t)).sort(byOrder);
   const { list, changed: reset } = freshen(stored, localDate());
   if (reset.length > 0) await putTasks(reset);
   tasks = list;
@@ -50,14 +50,14 @@ export async function loadTasks(): Promise<void> {
   changed();
 }
 
+export async function loadTasks(): Promise<void> {
+  if (loaded) return;
+  await hydrate();
+}
+
 /** Re-read all tasks from disk into memory (used after a backup import). */
 export async function reloadTasks(): Promise<void> {
-  const stored = (await getAllTasks()).sort((a, b) => a.createdAt - b.createdAt);
-  const { list, changed: reset } = freshen(stored, localDate());
-  if (reset.length > 0) await putTasks(reset);
-  tasks = list;
-  loaded = true;
-  changed();
+  await hydrate();
 }
 
 /** Re-check the daily reset (called on a date rollover / when the tab refocuses). */
@@ -69,32 +69,110 @@ export async function refreshDailyTasks(): Promise<void> {
   changed();
 }
 
-export async function addTask(title: string, daily: boolean): Promise<void> {
-  const trimmed = title.trim();
-  if (!trimmed) return;
+/** Merge `fields` into a task, persist, and notify. Returns the updated task, or undefined if the id is unknown. */
+async function updateTask(id: string, fields: Partial<Task>): Promise<Task | undefined> {
+  const current = tasks.find((t) => t.id === id);
+  if (!current) return undefined;
+  const next = { ...current, ...fields, updatedAt: Date.now() };
+  await putTask(next);
+  tasks = tasks.map((t) => (t.id === id ? next : t));
+  changed();
+  return next;
+}
+
+export interface NewTaskInput {
+  title: string;
+  notes?: string;
+  dueDate?: string | null;
+  priority?: Priority;
+  tags?: string[];
+  repeat?: RepeatRule;
+  projectId?: string | null;
+}
+
+export async function addTask(input: NewTaskInput): Promise<void> {
+  const title = input.title.trim();
+  if (!title) return;
   const now = Date.now();
-  const task: Task = { id: newId(), title: trimmed, done: false, daily, doneDate: localDate(), createdAt: now, updatedAt: now };
+  const maxOrder = tasks.reduce((m, t) => Math.max(m, t.order), 0);
+  const task: Task = {
+    id: newTaskId(),
+    title,
+    notes: input.notes?.trim() ?? '',
+    done: false,
+    doneDate: localDate(),
+    completedAt: null,
+    dueDate: input.dueDate ?? null,
+    dueNotifiedDate: null,
+    projectId: input.projectId ?? null,
+    priority: input.priority ?? 'none',
+    tags: input.tags ?? [],
+    subtasks: [],
+    order: maxOrder + 1,
+    repeat: input.repeat ?? { kind: 'none' },
+    createdAt: now,
+    updatedAt: now,
+  };
   await putTask(task);
   tasks = [...tasks, task];
   changed();
 }
 
 export async function toggleTask(id: string, done: boolean): Promise<void> {
-  const current = tasks.find((t) => t.id === id);
-  if (!current) return;
-  const next = { ...current, done, doneDate: localDate(), updatedAt: Date.now() };
-  await putTask(next);
-  tasks = tasks.map((t) => (t.id === id ? next : t));
-  changed();
-  if (done) void bump('tasks');
+  const next = await updateTask(id, { done, completedAt: done ? Date.now() : null, doneDate: localDate() });
+  if (next && done) void bump('tasks');
 }
 
-export async function setTaskDaily(id: string, daily: boolean): Promise<void> {
+export const setTaskTitle = (id: string, title: string) => updateTask(id, { title: title.trim() });
+export const setTaskNotes = (id: string, notes: string) => updateTask(id, { notes });
+export const setTaskPriority = (id: string, priority: Priority) => updateTask(id, { priority });
+// Changing the due date clears the notified marker so the new date can ping again.
+export const setTaskDueDate = (id: string, dueDate: string | null) => updateTask(id, { dueDate, dueNotifiedDate: null });
+
+/** Record that today's "due" notification has fired for this task (set by the scheduler). */
+export const markTaskNotified = (id: string, date: string) => updateTask(id, { dueNotifiedDate: date });
+export const setTaskTags = (id: string, tags: string[]) => updateTask(id, { tags });
+export const setTaskRepeat = (id: string, repeat: RepeatRule) => updateTask(id, { repeat });
+export const setTaskProject = (id: string, projectId: string | null) => updateTask(id, { projectId });
+
+/** Move every task in a project back to the Inbox (used when a list is deleted). */
+export async function clearProjectFromTasks(projectId: string): Promise<void> {
+  const affected = tasks.filter((t) => t.projectId === projectId).map((t) => ({ ...t, projectId: null, updatedAt: Date.now() }));
+  if (affected.length === 0) return;
+  await putTasks(affected);
+  const byId = new Map(affected.map((t) => [t.id, t]));
+  tasks = tasks.map((t) => byId.get(t.id) ?? t);
+  changed();
+}
+
+// --- Subtasks ---
+export async function addSubtask(id: string, title: string): Promise<void> {
+  const current = tasks.find((t) => t.id === id);
+  const trimmed = title.trim();
+  if (!current || !trimmed) return;
+  await updateTask(id, { subtasks: [...current.subtasks, { id: newTaskId(), title: trimmed, done: false }] });
+}
+
+export async function toggleSubtask(id: string, subId: string, done: boolean): Promise<void> {
   const current = tasks.find((t) => t.id === id);
   if (!current) return;
-  const next = { ...current, daily, updatedAt: Date.now() };
-  await putTask(next);
-  tasks = tasks.map((t) => (t.id === id ? next : t));
+  await updateTask(id, { subtasks: current.subtasks.map((s) => (s.id === subId ? { ...s, done } : s)) });
+}
+
+export async function removeSubtask(id: string, subId: string): Promise<void> {
+  const current = tasks.find((t) => t.id === id);
+  if (!current) return;
+  await updateTask(id, { subtasks: current.subtasks.filter((s) => s.id !== subId) });
+}
+
+/** Persist a new manual ordering given the task ids top-to-bottom. Unlisted tasks keep their place. */
+export async function reorderTasks(idsInOrder: string[]): Promise<void> {
+  const pos = new Map(idsInOrder.map((id, i) => [id, i]));
+  const updated = tasks.filter((t) => pos.has(t.id)).map((t) => ({ ...t, order: pos.get(t.id)!, updatedAt: Date.now() }));
+  if (updated.length === 0) return;
+  await putTasks(updated);
+  const byId = new Map(updated.map((t) => [t.id, t]));
+  tasks = tasks.map((t) => byId.get(t.id) ?? t).sort(byOrder);
   changed();
 }
 
@@ -104,11 +182,18 @@ export async function removeTask(id: string): Promise<void> {
   changed();
 }
 
-/** Clear completed one-off tasks (daily tasks are kept). */
+/** Re-insert a previously removed task exactly as it was (for undo). */
+export async function restoreTask(task: Task): Promise<void> {
+  await putTask(task);
+  if (!tasks.some((t) => t.id === task.id)) tasks = [...tasks, task].sort(byOrder);
+  changed();
+}
+
+/** Clear completed one-off tasks (repeating tasks are kept). */
 export async function clearDoneTasks(): Promise<void> {
-  const remove = tasks.filter((t) => t.done && !t.daily);
-  for (const t of remove) await deleteTask(t.id);
+  const remove = tasks.filter((t) => t.done && t.repeat.kind === 'none');
   if (remove.length === 0) return;
-  tasks = tasks.filter((t) => !(t.done && !t.daily));
+  for (const t of remove) await deleteTask(t.id);
+  tasks = tasks.filter((t) => !(t.done && t.repeat.kind === 'none'));
   changed();
 }

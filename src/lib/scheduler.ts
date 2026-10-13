@@ -9,12 +9,13 @@
  * came due while the tab was hidden pings as soon as you look.
  */
 import { localDate } from './format';
-import { ping } from './notify';
+import { ping, pingTask } from './notify';
 import { getPrefs } from './prefs';
 import { isDue } from './schedule';
 import { bump } from './stats';
 import { reload, saveMany, snapshot } from './store';
-import { refreshDailyTasks } from './tasks';
+import { taskDueNow } from './task-schedule';
+import { markTaskNotified, refreshDailyTasks, tasksSnapshot } from './tasks';
 import type { Reminder } from './types';
 
 const TICK_MS = 20_000;
@@ -42,8 +43,20 @@ export async function tick(now = Date.now()): Promise<void> {
     }
   }
   if (updates.length > 0) await saveMany(updates);
+
   // Keep daily to-do tasks reset across a midnight rollover while the app stays open.
   void refreshDailyTasks();
+
+  // Due-date task notifications: one ping per task per day while the app is open.
+  if (!paused) {
+    const nowDate = new Date(now);
+    for (const task of tasksSnapshot()) {
+      if (taskDueNow(task, nowDate)) {
+        void pingTask(task, today);
+        void markTaskNotified(task.id, today);
+      }
+    }
+  }
 }
 
 export function startScheduler(): void {
