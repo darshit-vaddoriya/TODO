@@ -19,17 +19,19 @@ import {
   setTaskPriority,
   setTaskRepeat,
   reorderTasks,
+  setTaskProject,
   setTaskTags,
   toggleSubtask,
   toggleTask,
 } from '../../lib/tasks';
+import { addProject, removeProject, renameProject } from '../../lib/projects';
 import { localDate } from '../../lib/format';
 import { parseQuickAdd } from '../../lib/quick-parse';
 import { allTags, buildView, EMPTY_FILTER, matchesFilter, SORT_LABELS, sortTasks, type SortKey, type TaskFilter } from '../../lib/task-view';
 import { toast } from '../../lib/toast';
-import type { Priority, RepeatRule, Task, Weekday } from '../../lib/types';
-import { useTasks } from '../router';
-import { Empty, Header, Icon, Page, ReorderList, Section, Segmented, SwipeRow } from '../ui';
+import type { Priority, Project, RepeatRule, Task, Weekday } from '../../lib/types';
+import { useProjects, useTasks } from '../router';
+import { Dialog, Empty, Header, Icon, Page, ReorderList, Section, Segmented, SwipeRow } from '../ui';
 
 /** Delete a task but offer a few seconds to undo via a toast. */
 function deleteWithUndo(task: Task): void {
@@ -86,12 +88,13 @@ function dueLabel(dueDate: string, today: string): string {
 
 // --- A single task ---------------------------------------------------------
 
-function TaskRow({ task, today, handle }: { task: Task; today: string; handle?: ComponentChildren }) {
+function TaskRow({ task, today, projects, handle }: { task: Task; today: string; projects: Project[]; handle?: ComponentChildren }) {
   const [open, setOpen] = useState(false);
   const [subTitle, setSubTitle] = useState('');
   const pr = PRIORITY_META[task.priority];
   const overdue = task.dueDate && task.dueDate < today && !task.done;
   const subDone = task.subtasks.filter((s) => s.done).length;
+  const projectName = task.projectId ? projects.find((p) => p.id === task.projectId)?.name : undefined;
 
   const addSub = async () => {
     await addSubtask(task.id, subTitle);
@@ -124,6 +127,7 @@ function TaskRow({ task, today, handle }: { task: Task; today: string; handle?: 
                   {subDone}/{task.subtasks.length}
                 </span>
               )}
+              {projectName && <span class="text-muted">📋 {projectName}</span>}
               {task.tags.map((t) => (
                 <span key={t} class="text-muted">#{t}</span>
               ))}
@@ -175,6 +179,20 @@ function TaskRow({ task, today, handle }: { task: Task; today: string; handle?: 
             <textarea class="field !min-h-16 resize-y" placeholder="Add details…" value={task.notes} maxLength={500} onInput={(e) => void setTaskNotes(task.id, e.currentTarget.value)} />
           </label>
 
+          {projects.length > 0 && (
+            <div class="flex items-center gap-2">
+              <span class="section-label flex-1">List</span>
+              <select class="field !min-h-11 !w-auto !py-1.5" value={task.projectId ?? ''} onChange={(e) => void setTaskProject(task.id, e.currentTarget.value || null)} aria-label="List">
+                <option value="">Inbox</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <label class="block">
             <span class="section-label mb-1.5 block">Tags</span>
             <input class="field !min-h-11" placeholder="comma, separated" value={task.tags.join(', ')} onInput={(e) => void setTaskTags(task.id, e.currentTarget.value.split(',').map((s) => s.trim()).filter(Boolean))} aria-label="Tags" />
@@ -221,7 +239,7 @@ function TaskRow({ task, today, handle }: { task: Task; today: string; handle?: 
 
 // --- The add form ----------------------------------------------------------
 
-function AddTask() {
+function AddTask({ projectId }: { projectId: string | null }) {
   const [title, setTitle] = useState('');
   const [open, setOpen] = useState(false);
   const [priority, setPriority] = useState<Priority>('none');
@@ -239,6 +257,7 @@ function AddTask() {
       dueDate,
       tags: parsed.tags,
       repeat: buildRepeat(repeat, dueDate),
+      projectId,
     });
     setTitle('');
     setPriority('none');
@@ -293,9 +312,34 @@ const SORT_OPTS = (Object.keys(SORT_LABELS) as SortKey[]).map((value) => ({ valu
 
 export function Tasks() {
   const tasks = useTasks();
+  const projects = useProjects();
   const today = localDate();
   const [sort, setSort] = useState<SortKey>('manual');
   const [filter, setFilter] = useState<TaskFilter>(EMPTY_FILTER);
+  const [dialog, setDialog] = useState<{ mode: 'new' | 'rename'; id?: string; name: string } | null>(null);
+
+  const setProject = (project: TaskFilter['project']) => setFilter((f) => ({ ...f, project }));
+  const currentProjectId = filter.project !== 'all' && filter.project !== 'none' ? filter.project : null;
+  const selectedProject = currentProjectId ? projects.find((p) => p.id === currentProjectId) : undefined;
+
+  const saveDialog = async () => {
+    if (!dialog) return;
+    const name = dialog.name.trim();
+    if (!name) return;
+    if (dialog.mode === 'new') {
+      const id = await addProject(name);
+      if (id) setProject(id);
+    } else if (dialog.id) {
+      await renameProject(dialog.id, name);
+    }
+    setDialog(null);
+  };
+
+  const deleteList = (project: Project) => {
+    void removeProject(project.id);
+    setProject('all');
+    toast(`List “${project.name}” deleted · tasks moved to Inbox`);
+  };
 
   const tags = useMemo(() => allTags(tasks), [tasks]);
   const view = useMemo(() => buildView(tasks, filter, sort, today), [tasks, filter, sort, today]);
@@ -322,7 +366,7 @@ export function Tasks() {
 
   const activeCount = view.groups.reduce((n, g) => n + g.tasks.length, 0);
   const sub = tasks.length > 0 ? `${view.done.length} of ${tasks.length} done` : undefined;
-  const filtering = filter.search.trim() !== '' || filter.tag !== null || filter.priority !== null;
+  const filtering = filter.search.trim() !== '' || filter.tag !== null || filter.priority !== null || filter.project !== 'all';
 
   // Manual sort (unfiltered) shows one flat, drag-reorderable list.
   const manualActive = useMemo(() => sortTasks(tasks.filter((t) => !t.done && matchesFilter(t, filter)), 'manual'), [tasks, filter]);
@@ -333,7 +377,40 @@ export function Tasks() {
       <Header title="Tasks" sub={sub} />
       <Page>
         <Section>
-          <AddTask />
+          <AddTask projectId={currentProjectId} />
+        </Section>
+
+        <Section
+          title="Lists"
+          action={
+            <button type="button" class="flex items-center gap-1 text-[0.875rem] font-bold text-teal" onClick={() => setDialog({ mode: 'new', name: '' })}>
+              <Icon name="plus" size={15} /> New
+            </button>
+          }
+        >
+          <div class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5">
+            <button type="button" class="chip" aria-pressed={filter.project === 'all'} onClick={() => setProject('all')}>
+              All
+            </button>
+            <button type="button" class="chip" aria-pressed={filter.project === 'none'} onClick={() => setProject('none')}>
+              Inbox
+            </button>
+            {projects.map((p) => (
+              <button key={p.id} type="button" class="chip" aria-pressed={filter.project === p.id} onClick={() => setProject(p.id)}>
+                {p.name}
+              </button>
+            ))}
+          </div>
+          {selectedProject && (
+            <div class="mt-2 flex gap-4 px-1">
+              <button type="button" class="text-[0.8125rem] font-bold text-muted" onClick={() => setDialog({ mode: 'rename', id: selectedProject.id, name: selectedProject.name })}>
+                Rename list
+              </button>
+              <button type="button" class="text-[0.8125rem] font-bold text-accent" onClick={() => deleteList(selectedProject)}>
+                Delete list
+              </button>
+            </div>
+          )}
         </Section>
 
         {tasks.length === 0 ? (
@@ -384,6 +461,7 @@ export function Tasks() {
                     <TaskRow
                       task={t}
                       today={today}
+                      projects={projects}
                       handle={
                         <button type="button" class="grid size-8 shrink-0 cursor-grab touch-none place-items-center rounded-lg text-muted active:bg-field" {...handle}>
                           <Icon name="grip" size={18} />
@@ -398,7 +476,7 @@ export function Tasks() {
                 <Section key={g.key} title={`${g.title} (${g.tasks.length})`}>
                   <div class="space-y-2.5">
                     {g.tasks.map((t) => (
-                      <TaskRow key={t.id} task={t} today={today} />
+                      <TaskRow key={t.id} task={t} today={today} projects={projects} />
                     ))}
                   </div>
                 </Section>
@@ -416,7 +494,7 @@ export function Tasks() {
               >
                 <div class="space-y-2.5">
                   {view.done.map((t) => (
-                    <TaskRow key={t.id} task={t} today={today} />
+                    <TaskRow key={t.id} task={t} today={today} projects={projects} />
                   ))}
                 </div>
               </Section>
@@ -424,6 +502,25 @@ export function Tasks() {
           </>
         )}
       </Page>
+
+      <Dialog open={!!dialog} onClose={() => setDialog(null)} title={dialog?.mode === 'rename' ? 'Rename list' : 'New list'}>
+        <input
+          class="field"
+          placeholder="List name"
+          maxLength={40}
+          value={dialog?.name ?? ''}
+          onInput={(e) => setDialog((d) => (d ? { ...d, name: e.currentTarget.value } : d))}
+          onKeyDown={(e) => e.key === 'Enter' && void saveDialog()}
+        />
+        <div class="mt-4 flex gap-2">
+          <button type="button" class="btn btn-quiet flex-1" onClick={() => setDialog(null)}>
+            Cancel
+          </button>
+          <button type="button" class="btn btn-primary flex-1" onClick={() => void saveDialog()} disabled={!dialog?.name.trim()}>
+            {dialog?.mode === 'rename' ? 'Rename' : 'Create'}
+          </button>
+        </div>
+      </Dialog>
     </>
   );
 }

@@ -16,9 +16,11 @@ export interface TaskFilter {
   tag: string | null;
   /** Only this priority, or null for all. */
   priority: Priority | null;
+  /** 'all' lists, 'none' for the Inbox (no project), or a project id. */
+  project: 'all' | 'none' | string;
 }
 
-export const EMPTY_FILTER: TaskFilter = { search: '', tag: null, priority: null };
+export const EMPTY_FILTER: TaskFilter = { search: '', tag: null, priority: null, project: 'all' };
 
 /** Lower sorts first; used so "high" floats to the top. */
 export const PRIORITY_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2, none: 3 };
@@ -41,6 +43,8 @@ export function allTags(tasks: Task[]): string[] {
 export function matchesFilter(task: Task, filter: TaskFilter): boolean {
   if (filter.priority && task.priority !== filter.priority) return false;
   if (filter.tag && !task.tags.includes(filter.tag)) return false;
+  if (filter.project === 'none' && task.projectId !== null) return false;
+  if (filter.project !== 'all' && filter.project !== 'none' && task.projectId !== filter.project) return false;
   const q = filter.search.trim().toLowerCase();
   if (q) {
     const hay = [task.title, task.notes, ...task.tags, ...task.subtasks.map((s) => s.title)].join(' ').toLowerCase();

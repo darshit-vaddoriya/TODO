@@ -24,6 +24,16 @@ describe('matchesFilter', () => {
     expect(matchesFilter(t, { ...EMPTY_FILTER, priority: 'high' })).toBe(true);
     expect(matchesFilter(t, { ...EMPTY_FILTER, priority: 'low' })).toBe(false);
   });
+
+  it('filters by project, with "none" meaning the Inbox', () => {
+    const inbox = task({ title: 'loose' });
+    const inP1 = task({ title: 'grouped', projectId: 'p1' });
+    expect(matchesFilter(inbox, { ...EMPTY_FILTER, project: 'none' })).toBe(true);
+    expect(matchesFilter(inP1, { ...EMPTY_FILTER, project: 'none' })).toBe(false);
+    expect(matchesFilter(inP1, { ...EMPTY_FILTER, project: 'p1' })).toBe(true);
+    expect(matchesFilter(inbox, { ...EMPTY_FILTER, project: 'p1' })).toBe(false);
+    expect(matchesFilter(inP1, { ...EMPTY_FILTER, project: 'all' })).toBe(true);
+  });
 });
 
 describe('allTags', () => {

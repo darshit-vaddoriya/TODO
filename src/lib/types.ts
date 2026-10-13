@@ -78,6 +78,8 @@ export interface Task {
   dueDate: string | null;
   /** The local date we last fired a "due" notification for, so it pings at most once a day. */
   dueNotifiedDate: string | null;
+  /** The list/project this task belongs to, or null for the default Inbox. */
+  projectId: string | null;
   priority: Priority;
   /** Free-form labels for grouping and filtering. */
   tags: string[];
@@ -89,6 +91,15 @@ export interface Task {
   repeat: RepeatRule;
   createdAt: number;
   updatedAt: number;
+}
+
+/** A named list that tasks can be grouped into. Tasks with no project live in the Inbox. */
+export interface Project {
+  id: string;
+  name: string;
+  /** Manual sort position among lists. */
+  order: number;
+  createdAt: number;
 }
 
 /** A ready-made, research-backed reminder the user can add with one tap. */

@@ -87,6 +87,7 @@ export interface NewTaskInput {
   priority?: Priority;
   tags?: string[];
   repeat?: RepeatRule;
+  projectId?: string | null;
 }
 
 export async function addTask(input: NewTaskInput): Promise<void> {
@@ -103,6 +104,7 @@ export async function addTask(input: NewTaskInput): Promise<void> {
     completedAt: null,
     dueDate: input.dueDate ?? null,
     dueNotifiedDate: null,
+    projectId: input.projectId ?? null,
     priority: input.priority ?? 'none',
     tags: input.tags ?? [],
     subtasks: [],
@@ -131,6 +133,17 @@ export const setTaskDueDate = (id: string, dueDate: string | null) => updateTask
 export const markTaskNotified = (id: string, date: string) => updateTask(id, { dueNotifiedDate: date });
 export const setTaskTags = (id: string, tags: string[]) => updateTask(id, { tags });
 export const setTaskRepeat = (id: string, repeat: RepeatRule) => updateTask(id, { repeat });
+export const setTaskProject = (id: string, projectId: string | null) => updateTask(id, { projectId });
+
+/** Move every task in a project back to the Inbox (used when a list is deleted). */
+export async function clearProjectFromTasks(projectId: string): Promise<void> {
+  const affected = tasks.filter((t) => t.projectId === projectId).map((t) => ({ ...t, projectId: null, updatedAt: Date.now() }));
+  if (affected.length === 0) return;
+  await putTasks(affected);
+  const byId = new Map(affected.map((t) => [t.id, t]));
+  tasks = tasks.map((t) => byId.get(t.id) ?? t);
+  changed();
+}
 
 // --- Subtasks ---
 export async function addSubtask(id: string, title: string): Promise<void> {

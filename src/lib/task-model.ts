@@ -111,6 +111,7 @@ export function normalizeTask(raw: unknown, now = Date.now()): Task {
     completedAt: typeof r.completedAt === 'number' ? r.completedAt : done ? createdAt : null,
     dueDate: typeof r.dueDate === 'string' ? r.dueDate : null,
     dueNotifiedDate: typeof r.dueNotifiedDate === 'string' ? r.dueNotifiedDate : null,
+    projectId: typeof r.projectId === 'string' ? r.projectId : null,
     priority: normalizePriority(r.priority),
     tags: Array.isArray(r.tags) ? (r.tags.filter((t) => typeof t === 'string') as string[]) : [],
     subtasks: normalizeSubtasks(r.subtasks),
