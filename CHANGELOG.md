@@ -7,6 +7,18 @@ in the app's Settings screen and written into backup files.
 
 ## [Unreleased]
 
+### Added
+- **A full task manager.** The Tasks screen now has priorities (None / Low /
+  Medium / High with coloured markers), **due dates**, and per-task **repeat
+  rules** (once / daily / weekly). Tasks group into **smart views** — Overdue,
+  Today, Upcoming, No date — and completed tasks sit below.
+- **Search, sort and tag filter.** Search across title, notes, tags and
+  subtasks; sort by manual order, due date, priority, newest, or A–Z; and
+  filter by tag chips.
+- **Inline editing & subtasks.** Tap a task to expand it and edit its priority,
+  due date, repeat, notes and tags, and add a **nested subtask checklist** with
+  its own progress count.
+
 ### Changed
 - **Task data model groundwork** — tasks now carry notes, a due date, a priority,
   tags, nested subtasks, a manual sort order, and a richer repeat rule (one-off,

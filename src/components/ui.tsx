@@ -66,6 +66,26 @@ const ICONS: Record<string, JSX.Element> = {
   ),
   volume: <path d="M4 9v6h4l5 4V5L8 9zM16 9a3 3 0 0 1 0 6M18.5 6.5a7 7 0 0 1 0 11" />,
   shield: <path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6z" />,
+  calendar: (
+    <>
+      <rect x="3.5" y="5" width="17" height="15" rx="2" />
+      <path d="M3.5 9.5h17M8 3v4M16 3v4" />
+    </>
+  ),
+  flag: <path d="M5 21V5h12l-3 4 3 4H5" />,
+  tag: (
+    <>
+      <path d="M3 12V5a2 2 0 0 1 2-2h7l9 9-7 7z" />
+      <path d="M7.5 7.5h.01" />
+    </>
+  ),
+  search: (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M20 20l-4-4" />
+    </>
+  ),
+  repeat: <path d="M17 2l3 3-3 3M3 11V9a4 4 0 0 1 4-4h13M7 22l-3-3 3-3M21 13v2a4 4 0 0 1-4 4H4" />,
 };
 
 export function Icon({ name, size = 22, class: cls = '' }: { name: keyof typeof ICONS | string; size?: number; class?: string }) {
