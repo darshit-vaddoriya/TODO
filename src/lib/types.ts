@@ -76,6 +76,8 @@ export interface Task {
   completedAt: number | null;
   /** Due date as "YYYY-MM-DD", or null for no due date. */
   dueDate: string | null;
+  /** The local date we last fired a "due" notification for, so it pings at most once a day. */
+  dueNotifiedDate: string | null;
   priority: Priority;
   /** Free-form labels for grouping and filtering. */
   tags: string[];

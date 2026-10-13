@@ -102,6 +102,7 @@ export async function addTask(input: NewTaskInput): Promise<void> {
     doneDate: localDate(),
     completedAt: null,
     dueDate: input.dueDate ?? null,
+    dueNotifiedDate: null,
     priority: input.priority ?? 'none',
     tags: input.tags ?? [],
     subtasks: [],
@@ -123,7 +124,11 @@ export async function toggleTask(id: string, done: boolean): Promise<void> {
 export const setTaskTitle = (id: string, title: string) => updateTask(id, { title: title.trim() });
 export const setTaskNotes = (id: string, notes: string) => updateTask(id, { notes });
 export const setTaskPriority = (id: string, priority: Priority) => updateTask(id, { priority });
-export const setTaskDueDate = (id: string, dueDate: string | null) => updateTask(id, { dueDate });
+// Changing the due date clears the notified marker so the new date can ping again.
+export const setTaskDueDate = (id: string, dueDate: string | null) => updateTask(id, { dueDate, dueNotifiedDate: null });
+
+/** Record that today's "due" notification has fired for this task (set by the scheduler). */
+export const markTaskNotified = (id: string, date: string) => updateTask(id, { dueNotifiedDate: date });
 export const setTaskTags = (id: string, tags: string[]) => updateTask(id, { tags });
 export const setTaskRepeat = (id: string, repeat: RepeatRule) => updateTask(id, { repeat });
 
