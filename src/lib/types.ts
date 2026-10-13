@@ -43,15 +43,48 @@ export interface Collections {
   reminders: Reminder[];
 }
 
-/** A to-do item. A daily task reappears unchecked each morning; a one-off is for today only. */
-export interface Task {
+/** Task importance. "none" is the default (unflagged). */
+export type Priority = 'none' | 'low' | 'medium' | 'high';
+
+/**
+ * When a task reappears unchecked. `none` is a one-off; the rest reset `done`
+ * at local midnight on the days they next come due.
+ */
+export type RepeatRule =
+  | { kind: 'none' }
+  | { kind: 'daily' }
+  | { kind: 'weekly'; days: Weekday[] }
+  | { kind: 'everyNDays'; n: number };
+
+/** A single checklist item nested under a task. */
+export interface Subtask {
   id: string;
   title: string;
   done: boolean;
-  /** Repeats every day (resets to not-done at local midnight). */
-  daily: boolean;
+}
+
+/** A to-do item. A repeating task reappears unchecked when next due; a one-off is for today only. */
+export interface Task {
+  id: string;
+  title: string;
+  /** Free-text details shown when the task is expanded. */
+  notes: string;
+  done: boolean;
   /** The local date ("YYYY-MM-DD") the current `done` value is for. */
   doneDate: string;
+  /** When the task was last completed, epoch ms. null = not done. */
+  completedAt: number | null;
+  /** Due date as "YYYY-MM-DD", or null for no due date. */
+  dueDate: string | null;
+  priority: Priority;
+  /** Free-form labels for grouping and filtering. */
+  tags: string[];
+  /** Nested checklist items. */
+  subtasks: Subtask[];
+  /** Manual sort position — lower sorts higher in the list. */
+  order: number;
+  /** Recurrence rule. `{ kind: 'none' }` means a one-off task. */
+  repeat: RepeatRule;
   createdAt: number;
   updatedAt: number;
 }

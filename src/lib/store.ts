@@ -6,6 +6,7 @@
 import { deleteReminder, getAllReminders, putReminder, putReminders, putTasks } from './db';
 import { localDate } from './format';
 import { bump } from './stats';
+import { normalizeTask } from './task-model';
 import { reloadTasks, tasksSnapshot } from './tasks';
 import type { Preset, Reminder, Task, Weekday } from './types';
 
@@ -144,7 +145,8 @@ export const ALL_DAYS: Weekday[] = [0, 1, 2, 3, 4, 5, 6];
 
 export interface Backup {
   app: 'yaad';
-  version: 2;
+  /** Bumped to 3 when tasks gained notes, due dates, priority, tags, subtasks and repeat rules. Older files still import. */
+  version: number;
   exportedAt: number;
   reminders: Reminder[];
   tasks: Task[];
@@ -152,7 +154,7 @@ export interface Backup {
 
 /** A JSON-serialisable snapshot of every reminder and task, for "Export backup". */
 export function exportBackup(): Backup {
-  return { app: 'yaad', version: 2, exportedAt: Date.now(), reminders: snapshot(), tasks: tasksSnapshot() };
+  return { app: 'yaad', version: 3, exportedAt: Date.now(), reminders: snapshot(), tasks: tasksSnapshot() };
 }
 
 function isReminder(x: unknown): x is Reminder {
@@ -177,7 +179,9 @@ export async function importBackup(data: unknown): Promise<number> {
     await reload();
   }
   // Tasks were added in backup v2; older backups simply won't have them.
-  const validTasks = Array.isArray(backup.tasks) ? backup.tasks.filter((t): t is Task => !!t && typeof (t as Task).id === 'string' && typeof (t as Task).title === 'string') : [];
+  const validTasks = Array.isArray(backup.tasks)
+    ? backup.tasks.filter((t) => !!t && typeof (t as Task).id === 'string' && typeof (t as Task).title === 'string').map((t) => normalizeTask(t))
+    : [];
   if (validTasks.length > 0) {
     await putTasks(validTasks);
     await reloadTasks();

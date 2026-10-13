@@ -5,6 +5,17 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
+## [Unreleased]
+
+### Changed
+- **Task data model groundwork** — tasks now carry notes, a due date, a priority,
+  tags, nested subtasks, a manual sort order, and a richer repeat rule (one-off,
+  daily, weekly on chosen weekdays, or every N days) in place of the old
+  `daily` flag. Stored tasks and imported backups are migrated forward
+  automatically (IndexedDB schema v3); backup files are now version 3 and older
+  backups still import. No visible change to the Tasks screen yet — the UI that
+  uses these fields comes next.
+
 ## [1.2.0] — 2026-10-13
 
 ### Added

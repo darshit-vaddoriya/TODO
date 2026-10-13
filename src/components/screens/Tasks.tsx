@@ -1,6 +1,7 @@
 /** Daily to-do list: add tasks (one-off or repeating daily), check them off. */
 import { useState } from 'preact/hooks';
 import { addTask, clearDoneTasks, removeTask, toggleTask } from '../../lib/tasks';
+import { repeatLabel } from '../../lib/task-model';
 import type { Task } from '../../lib/types';
 import { useTasks } from '../router';
 import { Empty, Header, Icon, Page, Section } from '../ui';
@@ -20,7 +21,7 @@ function TaskRow({ task }: { task: Task }) {
       </button>
       <span class="min-w-0 flex-1">
         <span class={`block truncate font-semibold ${task.done ? 'text-muted line-through' : ''}`}>{task.title}</span>
-        {task.daily && <span class="block text-[0.75rem] font-semibold text-teal">Every day</span>}
+        {repeatLabel(task.repeat) && <span class="block text-[0.75rem] font-semibold text-teal">{repeatLabel(task.repeat)}</span>}
       </span>
       <button type="button" class="grid size-9 shrink-0 place-items-center rounded-full text-muted active:bg-field" aria-label={`Delete ${task.title}`} onClick={() => void removeTask(task.id)}>
         <Icon name="trash" size={18} />
@@ -35,7 +36,7 @@ export function Tasks() {
   const [daily, setDaily] = useState(false);
 
   const add = async () => {
-    await addTask(title, daily);
+    await addTask({ title, repeat: daily ? { kind: 'daily' } : { kind: 'none' } });
     setTitle('');
   };
 

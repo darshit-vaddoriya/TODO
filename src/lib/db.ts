@@ -4,6 +4,7 @@
  * leaves the device. The `meta` store holds small non-record values if needed.
  */
 import { deleteDB, openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import { normalizeTask } from './task-model';
 import type { Reminder, Task } from './types';
 
 export const DB_NAME = 'yaad';
@@ -17,12 +18,22 @@ interface YaadDB extends DBSchema {
 let dbPromise: Promise<IDBPDatabase<YaadDB>> | null = null;
 
 function db() {
-  dbPromise ??= openDB<YaadDB>(DB_NAME, 2, {
-    // v1 → v2 adds the `tasks` store. A fresh install gets everything.
-    upgrade(database) {
+  dbPromise ??= openDB<YaadDB>(DB_NAME, 3, {
+    // v1 → v2 adds the `tasks` store. v2 → v3 migrates each task record to the
+    // richer shape (notes, due date, priority, tags, subtasks, repeat rule).
+    // A fresh install gets everything and needs no record migration.
+    async upgrade(database, oldVersion, _newVersion, tx) {
       if (!database.objectStoreNames.contains('reminders')) database.createObjectStore('reminders', { keyPath: 'id' });
       if (!database.objectStoreNames.contains('tasks')) database.createObjectStore('tasks', { keyPath: 'id' });
       if (!database.objectStoreNames.contains('meta')) database.createObjectStore('meta');
+      if (oldVersion >= 1 && oldVersion < 3) {
+        const store = tx.objectStore('tasks');
+        let cursor = await store.openCursor();
+        while (cursor) {
+          await cursor.update(normalizeTask(cursor.value));
+          cursor = await cursor.continue();
+        }
+      }
     },
   });
   return dbPromise;
