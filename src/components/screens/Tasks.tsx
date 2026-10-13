@@ -4,7 +4,7 @@
  * Upcoming / No date smart views. Each task expands to edit its details,
  * notes, tags and subtasks.
  */
-import { useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { daysBetween, repeatLabel } from '../../lib/task-model';
 import {
   addSubtask,
@@ -12,6 +12,7 @@ import {
   clearDoneTasks,
   removeSubtask,
   removeTask,
+  restoreTask,
   setTaskDueDate,
   setTaskNotes,
   setTaskPriority,
@@ -21,10 +22,18 @@ import {
   toggleTask,
 } from '../../lib/tasks';
 import { localDate } from '../../lib/format';
+import { parseQuickAdd } from '../../lib/quick-parse';
 import { allTags, buildView, EMPTY_FILTER, SORT_LABELS, type SortKey, type TaskFilter } from '../../lib/task-view';
+import { toast } from '../../lib/toast';
 import type { Priority, RepeatRule, Task, Weekday } from '../../lib/types';
 import { useTasks } from '../router';
 import { Empty, Header, Icon, Page, Section, Segmented } from '../ui';
+
+/** Delete a task but offer a few seconds to undo via a toast. */
+function deleteWithUndo(task: Task): void {
+  void removeTask(task.id);
+  toast('Task deleted', { action: { label: 'Undo', run: () => void restoreTask(task) } });
+}
 
 // --- Priority presentation -------------------------------------------------
 
@@ -188,7 +197,7 @@ function TaskRow({ task, today }: { task: Task; today: string }) {
             </div>
           </div>
 
-          <button type="button" class="flex items-center gap-2 text-[0.875rem] font-bold text-accent" onClick={() => void removeTask(task.id)}>
+          <button type="button" class="flex items-center gap-2 text-[0.875rem] font-bold text-accent" onClick={() => deleteWithUndo(task)}>
             <Icon name="trash" size={16} /> Delete task
           </button>
         </div>
@@ -207,8 +216,17 @@ function AddTask() {
   const [repeat, setRepeat] = useState<RepeatChoice>('none');
 
   const add = async () => {
-    if (!title.trim()) return;
-    await addTask({ title, priority, dueDate: due || null, repeat: buildRepeat(repeat, due || null) });
+    const parsed = parseQuickAdd(title);
+    if (!parsed.title) return;
+    // Options set in the panel win over anything inferred from the text.
+    const dueDate = due || parsed.dueDate;
+    await addTask({
+      title: parsed.title,
+      priority: priority !== 'none' ? priority : parsed.priority,
+      dueDate,
+      tags: parsed.tags,
+      repeat: buildRepeat(repeat, dueDate),
+    });
     setTitle('');
     setPriority('none');
     setDue('');
@@ -220,10 +238,11 @@ function AddTask() {
     <div class="card">
       <div class="flex items-center gap-2">
         <input
+          id="quick-add"
           class="field flex-1"
-          placeholder="Add a task…"
+          placeholder="e.g. Pay rent tomorrow !high #home"
           value={title}
-          maxLength={120}
+          maxLength={160}
           onInput={(e) => setTitle(e.currentTarget.value)}
           onKeyDown={(e) => e.key === 'Enter' && void add()}
         />
@@ -268,6 +287,26 @@ export function Tasks() {
   const tags = useMemo(() => allTags(tasks), [tasks]);
   const view = useMemo(() => buildView(tasks, filter, sort, today), [tasks, filter, sort, today]);
 
+  // Keyboard shortcuts (handy on the desktop PWA): "n" to add, "/" to search.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      const focus = (id: string) => {
+        const node = document.getElementById(id);
+        if (node) {
+          e.preventDefault();
+          node.focus();
+        }
+      };
+      if (e.key === '/') focus('task-search');
+      else if (e.key.toLowerCase() === 'n') focus('quick-add');
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, []);
+
   const activeCount = view.groups.reduce((n, g) => n + g.tasks.length, 0);
   const sub = tasks.length > 0 ? `${view.done.length} of ${tasks.length} done` : undefined;
   const filtering = filter.search.trim() !== '' || filter.tag !== null || filter.priority !== null;
@@ -290,7 +329,7 @@ export function Tasks() {
               <div class="card space-y-3">
                 <div class="flex items-center gap-2">
                   <Icon name="search" size={18} class="text-muted" />
-                  <input class="min-h-10 w-full bg-transparent font-semibold outline-none" placeholder="Search tasks…" value={filter.search} onInput={(e) => setFilter((f) => ({ ...f, search: e.currentTarget.value }))} aria-label="Search tasks" />
+                  <input id="task-search" class="min-h-10 w-full bg-transparent font-semibold outline-none" placeholder="Search tasks…" value={filter.search} onInput={(e) => setFilter((f) => ({ ...f, search: e.currentTarget.value }))} aria-label="Search tasks" />
                   {filter.search && (
                     <button type="button" class="grid size-8 shrink-0 place-items-center rounded-full text-muted active:bg-field" aria-label="Clear search" onClick={() => setFilter((f) => ({ ...f, search: '' }))}>
                       <Icon name="close" size={16} />

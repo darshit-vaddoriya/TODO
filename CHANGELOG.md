@@ -18,6 +18,13 @@ in the app's Settings screen and written into backup files.
 - **Inline editing & subtasks.** Tap a task to expand it and edit its priority,
   due date, repeat, notes and tags, and add a **nested subtask checklist** with
   its own progress count.
+- **Natural-language quick-add.** Type `Pay rent tomorrow !high #home` and the
+  due date, priority and tags are pulled out automatically; anything not
+  recognised stays in the title.
+- **Undo delete.** Deleting a task shows an **Undo** toast that restores it
+  exactly as it was.
+- **Keyboard shortcuts** on the Tasks screen: `n` to jump to the add box, `/`
+  to jump to search.
 
 ### Changed
 - **Task data model groundwork** — tasks now carry notes, a due date, a priority,

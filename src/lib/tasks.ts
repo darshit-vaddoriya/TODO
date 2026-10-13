@@ -164,6 +164,13 @@ export async function removeTask(id: string): Promise<void> {
   changed();
 }
 
+/** Re-insert a previously removed task exactly as it was (for undo). */
+export async function restoreTask(task: Task): Promise<void> {
+  await putTask(task);
+  if (!tasks.some((t) => t.id === task.id)) tasks = [...tasks, task].sort(byOrder);
+  changed();
+}
+
 /** Clear completed one-off tasks (repeating tasks are kept). */
 export async function clearDoneTasks(): Promise<void> {
   const remove = tasks.filter((t) => t.done && t.repeat.kind === 'none');
