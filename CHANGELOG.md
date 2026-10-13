@@ -13,6 +13,8 @@ in the app's Settings screen and written into backup files.
   overdue, done today, reminders on), the tasks that need attention today
   (overdue + due, with inline check-off and a link to all tasks), and then the
   reminders with their next ping. Tasks and reminders finally share one home.
+- **Personal greeting.** Set your name in Settings → You and the Home greeting
+  becomes “Good morning, <name>”.
 
 ## [1.3.0] — 2026-10-13
 

@@ -22,6 +22,7 @@ export function Settings() {
   const reminders = useData();
   const now = useNow();
   const [theme, setTheme] = useState<Theme>(getPrefs().theme);
+  const [name, setName] = useState(getPrefs().name);
   const [sound, setSound] = useState(getPrefs().sound);
   const [perm, setPerm] = useState(permission());
   const [confirmWipe, setConfirmWipe] = useState(false);
@@ -89,6 +90,25 @@ export function Settings() {
     <>
       <Header title="Settings" showBack />
       <Page>
+        <Section title="You">
+          <div class="card">
+            <label class="block">
+              <span class="section-label mb-1.5 block">Your name</span>
+              <input
+                class="field"
+                placeholder="Add your name for a warmer greeting"
+                value={name}
+                maxLength={30}
+                onInput={(e) => {
+                  setName(e.currentTarget.value);
+                  setPrefs({ name: e.currentTarget.value });
+                }}
+                aria-label="Your name"
+              />
+            </label>
+          </div>
+        </Section>
+
         <Section title="Appearance">
           <div class="card">
             <Segmented

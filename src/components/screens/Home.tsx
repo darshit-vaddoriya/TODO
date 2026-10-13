@@ -21,11 +21,10 @@ import { Empty, Header, Icon, Meter, Nudge, Page, Section, Switch } from '../ui'
 
 const PRIORITY_DOT: Record<Priority, string> = { none: '', low: 'bg-teal', medium: 'bg-haldi', high: 'bg-accent' };
 
-function greeting(now: number): string {
+function greeting(now: number, name: string): string {
   const h = new Date(now).getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
+  const part = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  return name.trim() ? `${part}, ${name.trim()}` : part;
 }
 
 function longDate(now: number): string {
@@ -187,7 +186,7 @@ export function Home() {
     <>
       <Header
         title="Yaad"
-        sub={`${greeting(now)} · ${longDate(now)}`}
+        sub={`${greeting(now, getPrefs().name)} · ${longDate(now)}`}
         actions={
           <>
             <button

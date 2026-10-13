@@ -3,6 +3,8 @@ export type Theme = 'system' | 'light' | 'dark';
 
 export interface Prefs {
   theme: Theme;
+  /** The user's first name, shown in the Home greeting. Empty = no name set. */
+  name: string;
   /** Whether the user has turned on OS notifications at least once (so we don't re-nudge). */
   notifyAsked: boolean;
   installPromptSeen: boolean;
@@ -15,6 +17,7 @@ export interface Prefs {
 const KEY = 'yaad:prefs';
 const DEFAULTS: Prefs = {
   theme: 'system',
+  name: '',
   notifyAsked: false,
   installPromptSeen: false,
   sound: true,
