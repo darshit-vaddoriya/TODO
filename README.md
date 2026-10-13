@@ -17,12 +17,15 @@ on your device.
   interval. See [RESEARCH.md](RESEARCH.md).
 - **System notifications** with an optional soft chime and vibration, plus a
   **Snooze 10 min** action and a **"Did it"** button with per-reminder daily progress.
+- **Daily tasks** — a to-do list with one-off or repeat-every-day tasks.
+- **Report** — today's activity, a 7-day trend, per-reminder counts, export to text.
 - **Do Not Disturb** — mute everything for 1h / 3h / until tomorrow morning.
-- **Backup & restore** — export/import all reminders as a JSON file.
+- **Test notification** in Settings to check pings actually reach you.
+- **Backup & restore** — export/import all reminders and tasks as a JSON file.
 - **Private & offline.** No account, no server. Reminders live in the browser's
   IndexedDB on this device only. Installable to the home screen.
 
-See [CHANGELOG.md](CHANGELOG.md) for version history (current: **v1.1.0**).
+See [CHANGELOG.md](CHANGELOG.md) for version history (current: **v1.2.0**).
 
 ## How reminders fire (and the honest limit)
 

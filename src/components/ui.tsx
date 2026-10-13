@@ -19,6 +19,8 @@ const ICONS: Record<string, JSX.Element> = {
     </>
   ),
   sparkles: <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 15l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z" />,
+  list: <path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" />,
+  chart: <path d="M4 20V11M10 20V5M16 20v-6M2 20h20" />,
   clock: (
     <>
       <circle cx="12" cy="12" r="9" />

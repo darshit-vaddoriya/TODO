@@ -5,6 +5,23 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
+## [1.2.0] — 2026-10-13
+
+### Added
+- **Daily tasks (to-do list)** — a new Tasks tab: add one-off tasks or ones that
+  **repeat every day** (reset each morning), check them off, and clear completed.
+- **Report** — a new Report tab: today's reminder completions and tasks done, a
+  **last-7-days** activity chart, per-reminder counts, and **export to a .txt file**.
+  Activity is logged on-device (last 30 days) in the `meta` store.
+- **Send a test notification** in Settings → Pings, to diagnose when reminders
+  aren't arriving, with guidance to install + allow notifications.
+
+### Changed
+- Bottom navigation is now Reminders · Tasks · [+] · Report · Presets.
+- Backups now include tasks as well as reminders (backup format v2; older
+  reminder-only backups still import).
+- IndexedDB upgraded to v2 (adds the `tasks` store); existing data is preserved.
+
 ## [1.1.0] — 2026-10-13
 
 ### Added
@@ -36,5 +53,6 @@ in the app's Settings screen and written into backup files.
 - System notifications with optional chime and vibration; in-page scheduler.
 - Offline-first PWA, installable, all data stored on-device in IndexedDB.
 
+[1.2.0]: https://github.com/darshit-vaddoriya/TODO/releases/tag/v1.2.0
 [1.1.0]: https://github.com/darshit-vaddoriya/TODO/releases/tag/v1.1.0
 [1.0.0]: https://github.com/darshit-vaddoriya/TODO/releases/tag/v1.0.0

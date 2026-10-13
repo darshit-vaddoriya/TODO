@@ -12,7 +12,9 @@ import { localDate } from './format';
 import { ping } from './notify';
 import { getPrefs } from './prefs';
 import { isDue } from './schedule';
+import { bump } from './stats';
 import { reload, saveMany, snapshot } from './store';
+import { refreshDailyTasks } from './tasks';
 import type { Reminder } from './types';
 
 const TICK_MS = 20_000;
@@ -32,6 +34,7 @@ export async function tick(now = Date.now()): Promise<void> {
     const r = rolledOver(current, today);
     if (!paused && isDue(r, now)) {
       void ping(r);
+      void bump('reminders');
       updates.push({ ...r, lastFiredAt: now, firedToday: r.firedToday + 1, firedTodayDate: today });
     } else if (r !== current) {
       // Only the date rolled over; persist the reset count.
@@ -39,6 +42,8 @@ export async function tick(now = Date.now()): Promise<void> {
     }
   }
   if (updates.length > 0) await saveMany(updates);
+  // Keep daily to-do tasks reset across a midnight rollover while the app stays open.
+  void refreshDailyTasks();
 }
 
 export function startScheduler(): void {

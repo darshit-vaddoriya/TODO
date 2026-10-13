@@ -97,7 +97,7 @@ export async function ping(reminder: Reminder): Promise<void> {
     }
   }
 
-  if (reminder.vibrate && 'vibrate' in navigator) {
+  if ((reminder.vibrate ?? true) && 'vibrate' in navigator) {
     try {
       navigator.vibrate([120, 60, 120]);
     } catch {
@@ -105,4 +105,41 @@ export async function ping(reminder: Reminder): Promise<void> {
     }
   }
   if (getPrefs().sound) playChime();
+}
+
+/**
+ * A one-off test notification (Settings → "Send a test notification"), so the
+ * user can confirm pings actually reach the system. Returns what happened.
+ */
+export async function sendTestNotification(): Promise<'ok' | 'denied' | 'unsupported'> {
+  if (!notificationsSupported()) return 'unsupported';
+  const perm = await requestPermission();
+  if (perm !== 'granted') return perm === 'denied' ? 'denied' : 'unsupported';
+  const options: NotificationOptions = {
+    body: 'If you can see this, reminders will reach you while Yaad is open.',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/badge-72.png',
+    tag: 'yaad-test',
+    ...({ renotify: true } as NotificationOptions),
+  };
+  try {
+    const reg = await navigator.serviceWorker?.ready;
+    if (reg) await reg.showNotification('🔔 Test notification', options);
+    else new Notification('🔔 Test notification', options);
+  } catch {
+    try {
+      new Notification('🔔 Test notification', options);
+    } catch {
+      return 'unsupported';
+    }
+  }
+  if ('vibrate' in navigator) {
+    try {
+      navigator.vibrate(120);
+    } catch {
+      // Not supported.
+    }
+  }
+  if (getPrefs().sound) playChime();
+  return 'ok';
 }

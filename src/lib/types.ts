@@ -43,6 +43,19 @@ export interface Collections {
   reminders: Reminder[];
 }
 
+/** A to-do item. A daily task reappears unchecked each morning; a one-off is for today only. */
+export interface Task {
+  id: string;
+  title: string;
+  done: boolean;
+  /** Repeats every day (resets to not-done at local midnight). */
+  daily: boolean;
+  /** The local date ("YYYY-MM-DD") the current `done` value is for. */
+  doneDate: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 /** A ready-made, research-backed reminder the user can add with one tap. */
 export interface Preset {
   id: string;

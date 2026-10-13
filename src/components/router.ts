@@ -4,7 +4,8 @@
  */
 import { useEffect, useState } from 'preact/hooks';
 import { snapshot, subscribe } from '../lib/store';
-import type { Reminder } from '../lib/types';
+import { subscribeTasks, tasksSnapshot } from '../lib/tasks';
+import type { Reminder, Task } from '../lib/types';
 
 function parse(hash: string): string[] {
   return hash.replace(/^#\/?/, '').split('/').filter(Boolean);
@@ -46,6 +47,13 @@ export function useData(): Reminder[] {
   const [, setTick] = useState(0);
   useEffect(() => subscribe(() => setTick((n) => n + 1)), []);
   return snapshot();
+}
+
+/** Re-render whenever the task list changes. */
+export function useTasks(): Task[] {
+  const [, setTick] = useState(0);
+  useEffect(() => subscribeTasks(() => setTick((n) => n + 1)), []);
+  return tasksSnapshot();
 }
 
 /** A ticking clock so "next in …" labels count down without a manual refresh. */

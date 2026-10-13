@@ -4,25 +4,55 @@
  * leaves the device. The `meta` store holds small non-record values if needed.
  */
 import { deleteDB, openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import type { Reminder } from './types';
+import type { Reminder, Task } from './types';
 
 export const DB_NAME = 'yaad';
 
 interface YaadDB extends DBSchema {
   reminders: { key: string; value: Reminder };
+  tasks: { key: string; value: Task };
   meta: { key: string; value: unknown };
 }
 
 let dbPromise: Promise<IDBPDatabase<YaadDB>> | null = null;
 
 function db() {
-  dbPromise ??= openDB<YaadDB>(DB_NAME, 1, {
+  dbPromise ??= openDB<YaadDB>(DB_NAME, 2, {
+    // v1 → v2 adds the `tasks` store. A fresh install gets everything.
     upgrade(database) {
       if (!database.objectStoreNames.contains('reminders')) database.createObjectStore('reminders', { keyPath: 'id' });
+      if (!database.objectStoreNames.contains('tasks')) database.createObjectStore('tasks', { keyPath: 'id' });
       if (!database.objectStoreNames.contains('meta')) database.createObjectStore('meta');
     },
   });
   return dbPromise;
+}
+
+// --- Generic meta (used for the stats log) ---
+export async function getMeta<T>(key: string): Promise<T | undefined> {
+  return (await (await db()).get('meta', key)) as T | undefined;
+}
+
+export async function setMeta<T>(key: string, value: T): Promise<void> {
+  await (await db()).put('meta', value, key);
+}
+
+// --- Tasks ---
+export async function getAllTasks(): Promise<Task[]> {
+  return (await db()).getAll('tasks');
+}
+
+export async function putTask(task: Task): Promise<void> {
+  await (await db()).put('tasks', task);
+}
+
+export async function putTasks(tasks: Task[]): Promise<void> {
+  const tx = (await db()).transaction('tasks', 'readwrite');
+  await Promise.all([...tasks.map((t) => tx.store.put(t)), tx.done]);
+}
+
+export async function deleteTask(id: string): Promise<void> {
+  await (await db()).delete('tasks', id);
 }
 
 export async function getAllReminders(): Promise<Reminder[]> {

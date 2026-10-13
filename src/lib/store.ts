@@ -3,9 +3,11 @@
  * change. Components subscribe and re-render. There is no lock or encryption:
  * reminders aren't sensitive — they simply never leave the device.
  */
-import { deleteReminder, getAllReminders, putReminder, putReminders } from './db';
+import { deleteReminder, getAllReminders, putReminder, putReminders, putTasks } from './db';
 import { localDate } from './format';
-import type { Preset, Reminder, Weekday } from './types';
+import { bump } from './stats';
+import { reloadTasks, tasksSnapshot } from './tasks';
+import type { Preset, Reminder, Task, Weekday } from './types';
 
 let reminders: Reminder[] = [];
 let loaded = false;
@@ -107,6 +109,7 @@ export async function markDone(id: string): Promise<void> {
   const today = localDate();
   const firedToday = (r.firedTodayDate === today ? r.firedToday : 0) + 1;
   await patch(id, { lastFiredAt: Date.now(), snoozedUntil: null, firedToday, firedTodayDate: today });
+  void bump('reminders');
 }
 
 /** Snooze a single reminder for `minutes` from now. */
@@ -141,14 +144,15 @@ export const ALL_DAYS: Weekday[] = [0, 1, 2, 3, 4, 5, 6];
 
 export interface Backup {
   app: 'yaad';
-  version: 1;
+  version: 2;
   exportedAt: number;
   reminders: Reminder[];
+  tasks: Task[];
 }
 
-/** A JSON-serialisable snapshot of every reminder, for "Export backup". */
+/** A JSON-serialisable snapshot of every reminder and task, for "Export backup". */
 export function exportBackup(): Backup {
-  return { app: 'yaad', version: 1, exportedAt: Date.now(), reminders: snapshot() };
+  return { app: 'yaad', version: 2, exportedAt: Date.now(), reminders: snapshot(), tasks: tasksSnapshot() };
 }
 
 function isReminder(x: unknown): x is Reminder {
@@ -167,9 +171,16 @@ export async function importBackup(data: unknown): Promise<number> {
     throw new Error('Not a Yaad backup file.');
   }
   const now = Date.now();
-  const valid = backup.reminders.filter(isReminder).map((r) => ({ ...r, lastFiredAt: now, snoozedUntil: null }));
-  if (valid.length === 0) return 0;
-  await putReminders(valid);
-  await reload();
-  return valid.length;
+  const validReminders = backup.reminders.filter(isReminder).map((r) => ({ ...r, lastFiredAt: now, snoozedUntil: null }));
+  if (validReminders.length > 0) {
+    await putReminders(validReminders);
+    await reload();
+  }
+  // Tasks were added in backup v2; older backups simply won't have them.
+  const validTasks = Array.isArray(backup.tasks) ? backup.tasks.filter((t): t is Task => !!t && typeof (t as Task).id === 'string' && typeof (t as Task).title === 'string') : [];
+  if (validTasks.length > 0) {
+    await putTasks(validTasks);
+    await reloadTasks();
+  }
+  return validReminders.length + validTasks.length;
 }

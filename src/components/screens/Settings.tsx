@@ -2,9 +2,10 @@
 import { useRef, useState } from 'preact/hooks';
 import { destroyDatabase } from '../../lib/db';
 import { formatTimeOfDay, tomorrowAt, untilPhrase } from '../../lib/format';
-import { permission, requestPermission } from '../../lib/notify';
+import { permission, requestPermission, sendTestNotification } from '../../lib/notify';
 import { applyTheme, clearPrefs, getPrefs, isPaused, pauseFor, pauseUntil, resume, setPrefs, type Theme } from '../../lib/prefs';
 import { canInstall, promptInstall } from '../../lib/pwa';
+import { clearStatsCache } from '../../lib/stats';
 import { exportBackup, importBackup } from '../../lib/store';
 import { toast } from '../../lib/toast';
 import { APP_VERSION } from '../../lib/version';
@@ -47,8 +48,17 @@ export function Settings() {
   const wipe = async () => {
     await destroyDatabase();
     clearPrefs();
+    clearStatsCache();
     toast('Everything deleted');
     location.href = '/';
+  };
+
+  const testNotification = async () => {
+    const result = await sendTestNotification();
+    setPerm(permission());
+    if (result === 'ok') toast('Test sent — check your notifications.');
+    else if (result === 'denied') toast('Blocked. Allow notifications in your browser/phone settings.', { tone: 'warn' });
+    else toast('This browser can’t show notifications.', { tone: 'warn' });
   };
 
   const exportData = () => {
@@ -110,7 +120,15 @@ export function Settings() {
                 <Switch checked={sound} onChange={(on) => { setSound(on); setPrefs({ sound: on }); }} label="Ping sound" />
               </SettingRow>
             </div>
+            <div class="border-t border-rule">
+              <SettingRow icon="bell" label="Send a test notification" hint="Not getting reminders? Tap to check pings reach you." onClick={() => void testNotification()} />
+            </div>
           </div>
+          {perm !== 'granted' && (
+            <p class="mt-2 px-1 text-[0.8125rem] leading-snug text-muted">
+              Reminders only ping while Yaad is open. For the best chance on a phone, <b>install</b> the app and allow notifications.
+            </p>
+          )}
         </Section>
 
         <Section title="Do Not Disturb">
