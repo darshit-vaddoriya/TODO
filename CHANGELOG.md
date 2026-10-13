@@ -5,6 +5,15 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
+## [Unreleased]
+
+### Changed
+- **Home is now a "today" dashboard.** Instead of only listing reminders, the
+  first screen opens with a greeting and date, at-a-glance counts (due today,
+  overdue, done today, reminders on), the tasks that need attention today
+  (overdue + due, with inline check-off and a link to all tasks), and then the
+  reminders with their next ping. Tasks and reminders finally share one home.
+
 ## [1.3.0] — 2026-10-13
 
 ### Added
