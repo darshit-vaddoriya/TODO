@@ -16,6 +16,7 @@ import { dayProgress, dueBucket } from '../../lib/task-view';
 import { toggleTask } from '../../lib/tasks';
 import { toast } from '../../lib/toast';
 import type { Priority, Reminder, Task } from '../../lib/types';
+import { MissedAlerts } from '../MissedAlerts';
 import { go, useData, useNow, useTasks } from '../router';
 import { Empty, Header, Icon, Meter, Nudge, Page, Section, Switch } from '../ui';
 
@@ -246,6 +247,8 @@ export function Home() {
             }}
           />
         )}
+
+        <MissedAlerts now={now} />
 
         {/* At-a-glance counts */}
         {(tasks.length > 0 || reminders.length > 0) && (

@@ -5,7 +5,8 @@ import { startScheduler } from '../lib/scheduler';
 import { initStats } from '../lib/stats';
 import { loadProjects } from '../lib/projects';
 import { loadAll } from '../lib/store';
-import { loadTasks } from '../lib/tasks';
+import { completeTaskById, getTask, loadTasks, snoozeTask } from '../lib/tasks';
+import { getPrefs } from '../lib/prefs';
 import { toast } from '../lib/toast';
 import { useRoute } from './router';
 import { Home } from './screens/Home';
@@ -20,6 +21,31 @@ import { Icon, Toasts } from './ui';
 /** Screens with their own big bottom controls hide the tab bar. */
 const NO_NAV = new Set(['edit']);
 
+/**
+ * Handles a notification's Snooze / Done button. The service worker can't touch
+ * task state (the recurrence and alert rules live in the app), so it opens
+ * `#/act/<snooze|done>/<taskId>` and the app applies it, then returns home.
+ */
+function Act({ action, id }: { action?: string; id?: string }) {
+  useEffect(() => {
+    void (async () => {
+      const task = id ? getTask(id) : undefined;
+      if (!task) {
+        toast('That task no longer exists.', { tone: 'warn' });
+      } else if (action === 'snooze') {
+        const min = getPrefs().snoozeMin;
+        await snoozeTask(task.id, min);
+        toast(`Snoozed “${task.title}” for ${min} min`);
+      } else if (action === 'done') {
+        await completeTaskById(task.id);
+        toast(`Done: ${task.title}`);
+      }
+      location.replace('#/');
+    })();
+  }, []);
+  return null;
+}
+
 function Screen({ route }: { route: string[] }) {
   const [first, second] = route;
   switch (first) {
@@ -29,6 +55,8 @@ function Screen({ route }: { route: string[] }) {
       return <Report />;
     case 'presets':
       return <Presets />;
+    case 'act':
+      return <Act action={second} id={route[2]} />;
     case 'edit':
       return <ReminderForm key={second ?? 'new'} id={second} />;
     case 'settings':

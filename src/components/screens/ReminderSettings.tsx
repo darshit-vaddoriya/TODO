@@ -7,6 +7,7 @@ import { useState } from 'preact/hooks';
 import { tomorrowAt, formatTimeOfDay, untilPhrase } from '../../lib/format';
 import { notificationsSupported, permission, requestPermission, sendTestNotification } from '../../lib/notify';
 import { getPrefs, isPaused, pauseFor, pauseUntil, resume, setPrefs, SNOOZE_CHOICES } from '../../lib/prefs';
+import { mirrorAlertPrefs } from '../../lib/scheduler';
 import { toast } from '../../lib/toast';
 import { useNow } from '../router';
 import { Header, Icon, Page, Section, Segmented, SettingRow, Switch } from '../ui';
@@ -32,6 +33,7 @@ export function ReminderSettings() {
   const update = (patch: Partial<typeof prefs>) => {
     setPrefs(patch);
     setLocal(getPrefs());
+    if (patch.defaultReminderTime) mirrorAlertPrefs();
   };
 
   const supported = notificationsSupported();
