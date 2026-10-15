@@ -12,7 +12,7 @@ import { getPrefs, isPaused, pauseFor, resume, setPrefs } from '../../lib/prefs'
 import { dismissInstallBanner, promptInstall, shouldShowInstallBanner } from '../../lib/pwa';
 import { nextDueAt, pingsPerDay } from '../../lib/schedule';
 import { markDone, snooze, toggle } from '../../lib/store';
-import { dueBucket } from '../../lib/task-view';
+import { dayProgress, dueBucket } from '../../lib/task-view';
 import { toggleTask } from '../../lib/tasks';
 import { toast } from '../../lib/toast';
 import type { Priority, Reminder, Task } from '../../lib/types';
@@ -165,7 +165,7 @@ export function Home() {
   const overdue = openTasks.filter((t) => dueBucket(t, today) === 'overdue');
   const dueToday = openTasks.filter((t) => dueBucket(t, today) === 'today');
   const focus = [...overdue, ...dueToday].slice(0, 6);
-  const doneToday = tasks.filter((t) => t.done && t.doneDate === today).length;
+  const doneToday = dayProgress(tasks, today).done;
 
   // Soonest upcoming ping across all active reminders, for the "Next up" line.
   const upcoming = dnd

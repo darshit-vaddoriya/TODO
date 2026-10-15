@@ -1,7 +1,9 @@
 /** Report: today's activity, a 7-day trend, per-reminder counts, and export. */
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { localDate } from '../../lib/format';
 import { recentDays } from '../../lib/stats';
 import { snapshot } from '../../lib/store';
+import { dayProgress } from '../../lib/task-view';
 import { toast } from '../../lib/toast';
 import { useData, useTasks } from '../router';
 import { Empty, Header, Icon, Page, Section } from '../ui';
@@ -31,7 +33,8 @@ export function Report() {
   }, [reminders, tasks]);
 
   const remindersToday = reminders.reduce((n, r) => n + (r.firedTodayDate === week.at(-1)?.date ? r.firedToday : 0), 0);
-  const tasksDone = tasks.filter((t) => t.done).length;
+  const progress = dayProgress(tasks, localDate());
+  const tasksDone = progress.done;
   const maxBar = Math.max(1, ...week.map((d) => d.reminders));
   const weekTotal = week.reduce((n, d) => n + d.reminders, 0);
 
@@ -39,7 +42,7 @@ export function Report() {
     const lines = [
       `Yaad — activity report (${new Date().toLocaleDateString()})`,
       '',
-      `Today: ${remindersToday} reminder completions, ${tasksDone}/${tasks.length} tasks done`,
+      `Today: ${remindersToday} reminder completions, ${tasksDone}/${progress.total} tasks done`,
       `Last 7 days: ${weekTotal} reminder completions`,
       '',
       'Daily:',
@@ -84,7 +87,7 @@ export function Report() {
                   <p class="text-[0.8125rem] font-semibold text-muted">reminder completions</p>
                 </div>
                 <div class="card">
-                  <p class="display text-[2rem] tnum">{tasksDone}<span class="text-muted text-[1.25rem]">/{tasks.length}</span></p>
+                  <p class="display text-[2rem] tnum">{tasksDone}<span class="text-muted text-[1.25rem]">/{progress.total}</span></p>
                   <p class="text-[0.8125rem] font-semibold text-muted">tasks done</p>
                 </div>
               </div>

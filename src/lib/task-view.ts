@@ -124,3 +124,17 @@ export function buildView(tasks: Task[], filter: TaskFilter, sort: SortKey, toda
 
   return { groups, done, total: tasks.length, matched: matched.length };
 }
+
+export interface DayProgress {
+  /** Tasks completed today (from the completion history, so repeating tasks count too). */
+  done: number;
+  /** Everything planned for today: completed today + still-open tasks due today or overdue. */
+  total: number;
+}
+
+/** Daily task progress for the dashboard and report. */
+export function dayProgress(tasks: Task[], today: string): DayProgress {
+  const done = tasks.filter((t) => t.completedDates.includes(today)).length;
+  const open = tasks.filter((t) => !t.done && t.dueDate !== null && t.dueDate <= today).length;
+  return { done, total: done + open };
+}

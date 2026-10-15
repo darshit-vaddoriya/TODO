@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeTask } from './task-model';
-import { allTags, buildView, dueBucket, EMPTY_FILTER, matchesFilter, sortTasks } from './task-view';
+import { allTags, buildView, dayProgress, dueBucket, EMPTY_FILTER, matchesFilter, sortTasks } from './task-view';
 import type { Task } from './types';
 
 const task = (over: Partial<Task> & { title: string }, i = 0): Task =>
@@ -101,5 +101,18 @@ describe('buildView', () => {
     expect(view.groups.map((g) => g.key)).toEqual(['upcoming']);
     expect(view.matched).toBe(1);
     expect(view.done).toEqual([]);
+  });
+});
+
+describe('dayProgress', () => {
+  it('counts today\'s completions (incl. repeating tasks) against everything planned', () => {
+    const doneToday = task({ title: 'a', done: true, completedDates: [TODAY] }, 1);
+    // A repeating task already completed today has moved on to tomorrow.
+    const repeatedToday = task({ title: 'b', repeat: { kind: 'daily' }, dueDate: '2026-06-16', completedDates: [TODAY] }, 2);
+    const dueNow = task({ title: 'c', dueDate: TODAY }, 3);
+    const late = task({ title: 'd', dueDate: '2026-06-10' }, 4);
+    const later = task({ title: 'e', dueDate: '2026-06-20' }, 5);
+    const undated = task({ title: 'f' }, 6);
+    expect(dayProgress([doneToday, repeatedToday, dueNow, late, later, undated], TODAY)).toEqual({ done: 2, total: 4 }); // 2 done + due-today + overdue
   });
 });
