@@ -7,7 +7,9 @@ import {
   effectiveMoment,
   FRESH_MS,
   inQuietHours,
+  liveAlertKeys,
   localMoment,
+  newlyPastKeys,
   offsetLabel,
   planAlerts,
   planSummary,
@@ -257,5 +259,34 @@ describe('wording', () => {
     expect(dueInPhrase(0)).toBe('now');
     expect(dueInPhrase(10)).toBe('in 10 minutes');
     expect(dueInPhrase(1440)).toBe('in 1 day');
+  });
+});
+
+describe('newlyPastKeys — alerts that are already in the past when added', () => {
+  it('skips a new reminder whose moment has passed, keeps a future one', () => {
+    // Due 10:00 with reminders 1 day before (yesterday 10:00) and at time; "now" is 08:00.
+    const t = withReminders([1440, 0]);
+    const keys = newlyPastKeys(t, undefined, at(8), '09:00');
+    const past = liveAlertKeys(t, '09:00').filter((a) => a.moment <= at(8));
+    expect(keys).toEqual(past.map((a) => a.key));
+    expect(keys).toHaveLength(1);
+  });
+
+  it('leaves alerts the task already had (genuinely missed ones) alone', () => {
+    const t = withReminders([0]);
+    expect(newlyPastKeys(t, t, at(14), '09:00')).toEqual([]);
+  });
+
+  it('treats a changed due time as new alerts', () => {
+    const t = withReminders([0]);
+    const moved = { ...t, dueTime: '07:00' }; // new moment 07:00 is already past at 08:00
+    expect(newlyPastKeys(moved, t, at(8), '09:00')).toHaveLength(1);
+  });
+
+  it('does not repeat a key already recorded as fired', () => {
+    const t = withReminders([0]);
+    const key = liveAlertKeys(t, '09:00')[0].key;
+    expect(newlyPastKeys({ ...t, dueTime: '07:00', firedAlerts: [] }, undefined, at(8), '09:00')).toHaveLength(1);
+    expect(newlyPastKeys({ ...t, firedAlerts: [key] }, undefined, at(23), '09:00')).toEqual([]);
   });
 });

@@ -175,8 +175,9 @@ export function Settings() {
           </div>
         </Section>
 
-        <Section title="Reminders">
-          <div class="card">
+        <Section title="Tasks & reminders">
+          <div class="card ruled">
+            <SettingRow icon="tag" label="Categories" hint="Group tasks — Work, Home, Errands…" onClick={() => go('/categories')} />
             <SettingRow
               icon="bell"
               label="Reminder settings"

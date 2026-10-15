@@ -112,6 +112,30 @@ export function effectiveMoment(moment: number, now: number, s: AlertSettings): 
   return moment;
 }
 
+/** Keys of every reminder alert a task currently has (one per reminder with a due date). */
+export function liveAlertKeys(task: Task, defaultTime: string): { key: string; moment: number }[] {
+  const out: { key: string; moment: number }[] = [];
+  for (const reminder of task.reminders) {
+    const moment = alertMoment(task, reminder, defaultTime);
+    if (moment !== null) out.push({ key: alertKey(task.id, reminder.id, moment), moment });
+  }
+  return out;
+}
+
+/**
+ * Alerts that became part of a task through this edit but whose moment has
+ * already passed — e.g. "1 day before" on a task due tomorrow evening, saved
+ * this afternoon. They can't remind anyone of the past, so the caller records
+ * them as delivered instead of letting them surface as "missed". Alerts the
+ * task already had (`prev`) are left alone: those are genuinely missed.
+ */
+export function newlyPastKeys(task: Task, prev: Task | undefined, now: number, defaultTime: string): string[] {
+  const before = new Set(prev ? liveAlertKeys(prev, defaultTime).map((a) => a.key) : []);
+  return liveAlertKeys(task, defaultTime)
+    .filter((a) => a.moment <= now && !before.has(a.key) && !task.firedAlerts.includes(a.key))
+    .map((a) => a.key);
+}
+
 // --- The plan -------------------------------------------------------------------
 
 /**

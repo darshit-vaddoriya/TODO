@@ -13,10 +13,10 @@ import { dismissInstallBanner, promptInstall, shouldShowInstallBanner } from '..
 import { nextDueAt, pingsPerDay } from '../../lib/schedule';
 import { markDone, snooze, toggle } from '../../lib/store';
 import { dayProgress, dueBucket } from '../../lib/task-view';
-import { toggleTask } from '../../lib/tasks';
 import { toast } from '../../lib/toast';
 import type { Priority, Reminder, Task } from '../../lib/types';
 import { MissedAlerts } from '../MissedAlerts';
+import { completeWithUndo } from '../taskActions';
 import { go, useData, useNow, useTasks } from '../router';
 import { Empty, Header, Icon, Meter, Nudge, Page, Section, Switch } from '../ui';
 
@@ -61,15 +61,18 @@ function TaskLine({ task, today }: { task: Task; today: string }) {
         aria-checked={task.done}
         aria-label={`Complete ${task.title}`}
         class="grid size-7 shrink-0 place-items-center rounded-full border-2 border-rule text-transparent transition-colors active:border-teal"
-        onClick={() => void toggleTask(task.id, true)}
+        onClick={() => void completeWithUndo(task)}
       >
         <Icon name="check" size={16} />
       </button>
-      <a href="#/tasks" class="flex min-w-0 flex-1 items-center gap-2">
+      <a href={`#/task/${task.id}`} class="flex min-w-0 flex-1 items-center gap-2">
         {task.priority !== 'none' && <span class={`size-2.5 shrink-0 rounded-full ${PRIORITY_DOT[task.priority]}`} aria-hidden="true" />}
         <span class="min-w-0 flex-1">
           <span class="block truncate font-semibold">{task.title}</span>
-          <span class={`block text-[0.75rem] font-semibold ${overdue ? 'text-accent' : 'text-teal'}`}>{overdue ? 'Overdue' : 'Due today'}</span>
+          <span class={`block text-[0.75rem] font-semibold ${overdue ? 'text-accent' : 'text-teal'}`}>
+            {overdue ? 'Overdue' : 'Due today'}
+            {task.dueTime ? ` · ${formatClock(task.dueTime)}` : ''}
+          </span>
         </span>
       </a>
     </div>
@@ -166,7 +169,8 @@ export function Home() {
   const overdue = openTasks.filter((t) => dueBucket(t, today) === 'overdue');
   const dueToday = openTasks.filter((t) => dueBucket(t, today) === 'today');
   const focus = [...overdue, ...dueToday].slice(0, 6);
-  const doneToday = dayProgress(tasks, today).done;
+  const progress = dayProgress(tasks, today);
+  const doneToday = progress.done;
 
   // Soonest upcoming ping across all active reminders, for the "Next up" line.
   const upcoming = dnd
@@ -254,11 +258,22 @@ export function Home() {
         {(tasks.length > 0 || reminders.length > 0) && (
           <Section>
             <div class="flex gap-2.5">
-              <Stat value={dueToday.length} label="Due today" tone="text-teal" href="#/tasks" />
-              <Stat value={overdue.length} label="Overdue" tone="text-accent" href="#/tasks" />
-              <Stat value={doneToday} label="Done today" tone="text-teal" />
+              <Stat value={dueToday.length} label="Due today" tone="text-teal" href="#/tasks/today" />
+              <Stat value={overdue.length} label="Overdue" tone="text-accent" href="#/tasks/overdue" />
+              <Stat value={doneToday} label="Done today" tone="text-teal" href="#/tasks/done" />
               <Stat value={dnd ? 0 : active.length} label="Reminders on" tone="text-ink" />
             </div>
+            {progress.total > 0 && (
+              <div class="card mt-2.5">
+                <div class="mb-1.5 flex items-baseline justify-between text-[0.875rem] font-semibold">
+                  <span>Today’s progress</span>
+                  <span class="tnum text-muted">
+                    {progress.done} / {progress.total} tasks
+                  </span>
+                </div>
+                <Meter ratio={progress.done / progress.total} label={`${progress.done} of ${progress.total} tasks done today`} />
+              </div>
+            )}
           </Section>
         )}
 
@@ -267,7 +282,7 @@ export function Home() {
           <Section
             {...sectionTitle(
               'Needs attention',
-              <a href="#/tasks" class={SECTION_LINK}>
+              <a href="#/tasks/today" class={SECTION_LINK}>
                 All tasks <Icon name="back" size={14} class="rotate-180" />
               </a>,
             )}
@@ -290,54 +305,68 @@ export function Home() {
           </Section>
         )}
 
-        {/* Reminders */}
+        {/* Repeating (interval) reminders */}
         {reminders.length === 0 && tasks.length === 0 ? (
           <Section>
-            <Empty title="Nothing here yet" body="Add a gentle wellness reminder, or jump to Tasks to plan your day.">
-              <a href="#/presets" class="btn btn-primary">
-                <Icon name="sparkles" size={18} /> Wellness presets
+            <Empty title="Nothing here yet" body="Add your first task, or set a gentle repeating reminder — water, eyes, posture.">
+              <a href="#/task/new" class="btn btn-primary">
+                <Icon name="plus" size={18} /> Add a task
               </a>
-              <a href="#/tasks" class="btn btn-quiet">
-                Add a task
+              <a href="#/presets" class="btn btn-quiet">
+                <Icon name="sparkles" size={18} /> Wellness presets
               </a>
             </Empty>
           </Section>
         ) : (
-          reminders.length > 0 && (
-            <>
-              <Section
-                {...sectionTitle(
-                  'Reminders',
-                  !dnd && upcoming ? (
+          <>
+            <Section
+              title="Reminders"
+              action={
+                <span class="flex items-center gap-3">
+                  {!dnd && upcoming && (
                     <span class="flex items-center gap-1 text-[0.8125rem] font-semibold text-muted">
                       <Icon name="clock" size={14} class="text-teal" /> next {untilPhrase(upcoming.at - now)}
                     </span>
-                  ) : undefined,
-                )}
-              >
+                  )}
+                  <a href="#/edit" class={SECTION_LINK}>
+                    <Icon name="plus" size={15} /> New
+                  </a>
+                </span>
+              }
+            >
+              {reminders.length === 0 ? (
+                <div class="card text-[0.9375rem] text-muted">
+                  Repeating pings for habits like water and eye breaks.{' '}
+                  <a href="#/presets" class="font-bold text-teal">
+                    Browse presets
+                  </a>
+                </div>
+              ) : (
                 <div class="space-y-2.5">
                   {active.map((r) => (
                     <ReminderTile key={r.id} reminder={r} now={now} paused={dnd} />
                   ))}
                 </div>
-                {active.length === 0 && <Empty title="Everything is off" body="Flip a switch below to start a reminder again." />}
-              </Section>
-              {off.length > 0 && (
-                <Section title="Off">
-                  <div class="space-y-2.5">
-                    {off.map((r) => (
-                      <ReminderTile key={r.id} reminder={r} now={now} paused={dnd} />
-                    ))}
-                  </div>
-                </Section>
               )}
+              {reminders.length > 0 && active.length === 0 && <Empty title="Everything is off" body="Flip a switch below to start a reminder again." />}
+            </Section>
+            {off.length > 0 && (
+              <Section title="Off">
+                <div class="space-y-2.5">
+                  {off.map((r) => (
+                    <ReminderTile key={r.id} reminder={r} now={now} paused={dnd} />
+                  ))}
+                </div>
+              </Section>
+            )}
+            {reminders.length > 0 && (
               <Section>
                 <a href="#/presets" class="flex items-center justify-center gap-2 text-[0.9375rem] font-bold text-teal">
                   <Icon name="sparkles" size={18} /> Browse wellness presets
                 </a>
               </Section>
-            </>
-          )
+            )}
+          </>
         )}
       </Page>
     </>

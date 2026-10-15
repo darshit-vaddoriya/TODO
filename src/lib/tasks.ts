@@ -4,8 +4,10 @@
  * one-off becomes done. Completions are logged on the task for the history and
  * counted for the Report screen.
  */
+import { newlyPastKeys } from './alerts';
 import { deleteTask, getAllTasks, putTask, putTasks } from './db';
 import { localDate } from './format';
+import { getPrefs } from './prefs';
 import { bump } from './stats';
 import { completeTask, newTaskId, normalizeTask, reopenTask } from './task-model';
 import type { Priority, RepeatRule, Task } from './types';
@@ -51,6 +53,15 @@ export async function reloadTasks(): Promise<void> {
   await hydrate();
 }
 
+/**
+ * Reminders added or moved by an edit whose moment is already past are recorded
+ * as delivered, so they don't pop up as "missed" the instant they're saved.
+ */
+function skipPastAlerts(task: Task, prev: Task | undefined): Task {
+  const skip = newlyPastKeys(task, prev, Date.now(), getPrefs().defaultReminderTime);
+  return skip.length > 0 ? { ...task, firedAlerts: [...task.firedAlerts, ...skip] } : task;
+}
+
 /** Replace one task in memory, persist it, and notify. */
 async function commit(next: Task): Promise<Task> {
   await putTask(next);
@@ -63,7 +74,7 @@ async function commit(next: Task): Promise<Task> {
 async function updateTask(id: string, fields: Partial<Task>): Promise<Task | undefined> {
   const current = getTask(id);
   if (!current) return undefined;
-  return commit(normalizeTask({ ...current, ...fields, updatedAt: Date.now() }));
+  return commit(skipPastAlerts(normalizeTask({ ...current, ...fields, updatedAt: Date.now() }), current));
 }
 
 export interface NewTaskInput {
@@ -102,7 +113,7 @@ export async function addTask(input: NewTaskInput): Promise<Task | undefined> {
     },
     now,
   );
-  return commit(task);
+  return commit(skipPastAlerts(task, undefined));
 }
 
 /**
@@ -121,7 +132,7 @@ export async function saveTask(task: Task): Promise<Task> {
     dueNotifiedDate: moved ? null : task.dueNotifiedDate,
     updatedAt: Date.now(),
   });
-  return commit(next);
+  return commit(skipPastAlerts(next, current));
 }
 
 /**
@@ -131,7 +142,8 @@ export async function saveTask(task: Task): Promise<Task> {
 export async function completeTaskById(id: string): Promise<Task | undefined> {
   const before = getTask(id);
   if (!before || before.done) return undefined;
-  await commit(completeTask(before, localDate(), Date.now()));
+  // The next occurrence's reminders are all new; any already in the past are skipped.
+  await commit(skipPastAlerts(completeTask(before, localDate(), Date.now()), undefined));
   void bump('tasks');
   return before;
 }

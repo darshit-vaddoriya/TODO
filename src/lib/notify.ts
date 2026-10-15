@@ -42,6 +42,16 @@ export async function registerCatchUp(): Promise<void> {
   }
 }
 
+/** Vibrate where supported — and only once the user has interacted, which browsers require. */
+function buzz(pattern: number | number[]): void {
+  if (!('vibrate' in navigator) || navigator.userActivation?.hasBeenActive === false) return;
+  try {
+    navigator.vibrate(pattern);
+  } catch {
+    // Not supported.
+  }
+}
+
 /** Short soft two-tone chime built with the Web Audio API — no audio file to ship. */
 function playChime(): void {
   try {
@@ -98,13 +108,7 @@ export async function ping(reminder: Reminder): Promise<void> {
     }
   }
 
-  if ((reminder.vibrate ?? true) && 'vibrate' in navigator) {
-    try {
-      navigator.vibrate([120, 60, 120]);
-    } catch {
-      // Not supported.
-    }
-  }
+  if (reminder.vibrate ?? true) buzz([120, 60, 120]);
   if (getPrefs().sound) playChime();
 }
 
@@ -158,13 +162,7 @@ export async function deliverTaskNotice(notice: TaskNotice): Promise<void> {
       }
     }
   }
-  if ('vibrate' in navigator) {
-    try {
-      navigator.vibrate([120, 60, 120]);
-    } catch {
-      // Not supported.
-    }
-  }
+  buzz([120, 60, 120]);
   if (prefs.sound) playChime();
 }
 
@@ -194,13 +192,7 @@ export async function sendTestNotification(): Promise<'ok' | 'denied' | 'unsuppo
       return 'unsupported';
     }
   }
-  if ('vibrate' in navigator) {
-    try {
-      navigator.vibrate(120);
-    } catch {
-      // Not supported.
-    }
-  }
+  buzz(120);
   if (getPrefs().sound) playChime();
   return 'ok';
 }
