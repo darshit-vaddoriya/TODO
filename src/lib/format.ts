@@ -1,4 +1,5 @@
 /** Time, interval and local-date helpers. */
+import { getPrefs, type DateFormat } from './prefs';
 import type { ClockTime } from './types';
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -43,17 +44,61 @@ export function untilPhrase(ms: number): string {
   return m === 0 ? `in ${h}h` : `in ${h}h ${m}m`;
 }
 
-/** "8:00 AM" style clock label for a "HH:MM" value. */
-export function formatClock(time: ClockTime): string {
+/** A "HH:MM" clock label in 12-hour ("8:00 AM") or 24-hour ("08:00") style. Pure. */
+export function formatClockWith(time: ClockTime, time24: boolean): string {
   const [h, m] = time.split(':').map(Number);
-  const d = new Date();
-  d.setHours(h || 0, m || 0, 0, 0);
-  return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(d);
+  const hh = h || 0;
+  const mm = pad(m || 0);
+  if (time24) return `${pad(hh)}:${mm}`;
+  return `${hh % 12 || 12}:${mm} ${hh < 12 ? 'AM' : 'PM'}`;
 }
 
-/** "8:00 AM" for a Date (the next-due time). */
+/** "8:00 AM" / "08:00" for a "HH:MM" value, following the 12/24-hour setting. */
+export function formatClock(time: ClockTime): string {
+  return formatClockWith(time, getPrefs().time24);
+}
+
+/** The clock label for a Date (the next-due time), following the 12/24-hour setting. */
 export function formatTimeOfDay(d: Date): string {
-  return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(d);
+  return formatClockWith(`${pad(d.getHours())}:${pad(d.getMinutes())}`, getPrefs().time24);
+}
+
+/** A "YYYY-MM-DD" date written in the chosen style. Pure. */
+export function formatDateWith(dateStr: string, fmt: DateFormat): string {
+  const [y, m, d] = dateStr.split('-');
+  if (fmt === 'dmy') return `${d}/${m}/${y}`;
+  if (fmt === 'ymd') return `${y}-${m}-${d}`;
+  return `${m}/${d}/${y}`;
+}
+
+export function formatDate(dateStr: string): string {
+  return formatDateWith(dateStr, getPrefs().dateFormat);
+}
+
+/** Whole days from one "YYYY-MM-DD" to another (b - a); DST-safe. */
+function dayDiff(a: string, b: string): number {
+  const [ay, am, ad] = a.split('-').map(Number);
+  const [by, bm, bd] = b.split('-').map(Number);
+  return Math.round((Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / 86400000);
+}
+
+/** "Today", "Tomorrow", "Yesterday", else the date in the chosen style. Pure. */
+export function friendlyDateWith(dateStr: string, today: string, fmt: DateFormat): string {
+  const diff = dayDiff(today, dateStr);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Tomorrow';
+  if (diff === -1) return 'Yesterday';
+  return formatDateWith(dateStr, fmt);
+}
+
+export function friendlyDate(dateStr: string, today = localDate()): string {
+  return friendlyDateWith(dateStr, today, getPrefs().dateFormat);
+}
+
+/** "Today, 5:30 PM" / "Tomorrow" / "06/20/2026 · 09:00" — a task's due label. */
+export function dueLabelFor(dueDate: string, dueTime: ClockTime | null, today = localDate()): string {
+  const day = friendlyDate(dueDate, today);
+  return dueTime ? `${day}, ${formatClock(dueTime)}` : day;
 }
 
 /** Epoch ms at the next day's given hour (default 8am) — for "pause until tomorrow morning". */

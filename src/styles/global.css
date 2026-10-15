@@ -225,3 +225,25 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Compact layout: tighter cards, fields and gaps. Unlayered so it beats the utility spacing. */
+[data-density="compact"] .card {
+  padding: 0.5rem 0.75rem;
+  border-radius: 14px;
+}
+[data-density="compact"] .field {
+  min-height: 44px;
+}
+[data-density="compact"] .chip {
+  min-height: 38px;
+  padding-inline: 0.75rem;
+}
+[data-density="compact"] .btn {
+  min-height: 42px;
+}
+[data-density="compact"] .space-y-2\.5 > :not(:last-child) {
+  margin-bottom: 0.25rem;
+}
+[data-density="compact"] .space-y-2\.5 > * + * {
+  margin-top: 0;
+}

@@ -12,6 +12,7 @@ import { Home } from './screens/Home';
 import { Presets } from './screens/Presets';
 import { ReminderForm } from './screens/ReminderForm';
 import { Report } from './screens/Report';
+import { ReminderSettings } from './screens/ReminderSettings';
 import { Settings } from './screens/Settings';
 import { Tasks } from './screens/Tasks';
 import { Icon, Toasts } from './ui';
@@ -31,7 +32,7 @@ function Screen({ route }: { route: string[] }) {
     case 'edit':
       return <ReminderForm key={second ?? 'new'} id={second} />;
     case 'settings':
-      return <Settings />;
+      return second === 'reminders' ? <ReminderSettings /> : <Settings />;
     default:
       return <Home />;
   }
