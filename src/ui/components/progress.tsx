@@ -1,36 +1,53 @@
-/** Progress displays: a ring with its fraction, and a thin bar. */
+/** Progress displays: concentric rings, and a thin bar. */
+import type { ComponentChildren } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 
-/** A circular progress ring with its fraction in the middle. Pure SVG attributes, so the CSP is satisfied. */
-export function ProgressRing({ done, total, size = 76, label }: { done: number; total: number; size?: number; label: string }) {
-  const stroke = 8;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const ratio = total > 0 ? Math.min(1, done / total) : 0;
+export interface RingSpec {
+  done: number;
+  total: number;
+  /** A CSS colour, normally a theme variable such as "var(--teal)". */
+  color: string;
+}
+
+/**
+ * Concentric progress rings in the style of a fitness summary: the first ring is
+ * the outermost. Whatever is passed as children sits in the middle. Drawn with
+ * SVG attributes only, so the strict CSP (no inline styles) is satisfied.
+ */
+export function ConcentricRings({ rings, size = 112, label, children }: { rings: RingSpec[]; size?: number; label: string; children?: ComponentChildren }) {
+  const stroke = 10;
+  const gap = 4;
+  const mid = size / 2;
   return (
     <span class="relative grid shrink-0 place-items-center" role="img" aria-label={label}>
       <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} aria-hidden="true">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--field)" stroke-width={stroke} />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke="var(--teal)"
-          stroke-width={stroke}
-          stroke-linecap="round"
-          stroke-dasharray={c}
-          stroke-dashoffset={c * (1 - ratio)}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          class="transition-[stroke-dashoffset] duration-500"
-        />
+        {rings.map((ring, i) => {
+          const r = (size - stroke) / 2 - i * (stroke + gap);
+          const c = 2 * Math.PI * r;
+          const ratio = ring.total > 0 ? Math.min(1, ring.done / ring.total) : 0;
+          return (
+            <g key={i}>
+              <circle cx={mid} cy={mid} r={r} fill="none" stroke="var(--field)" stroke-width={stroke} />
+              {ratio > 0 && (
+                <circle
+                  cx={mid}
+                  cy={mid}
+                  r={r}
+                  fill="none"
+                  stroke={ring.color}
+                  stroke-width={stroke}
+                  stroke-linecap="round"
+                  stroke-dasharray={c}
+                  stroke-dashoffset={c * (1 - ratio)}
+                  transform={`rotate(-90 ${mid} ${mid})`}
+                  class="transition-[stroke-dashoffset] duration-500"
+                />
+              )}
+            </g>
+          );
+        })}
       </svg>
-      <span class="absolute inset-0 grid place-items-center text-center">
-        <span class="display tnum text-[1.25rem] leading-none">
-          {done}
-          <span class="text-[0.8125rem] font-bold text-muted">/{total}</span>
-        </span>
-      </span>
+      <span class="absolute inset-0 grid place-items-center text-center">{children}</span>
     </span>
   );
 }

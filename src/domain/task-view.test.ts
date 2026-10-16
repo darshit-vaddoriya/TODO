@@ -3,6 +3,7 @@ import { normalizeTask } from '@/domain/task-model';
 import {
   activeFilterCount,
   allTags,
+  badgeCount,
   buildView,
   completedHistory,
   dayProgress,
@@ -197,5 +198,19 @@ describe('filter bar helpers', () => {
     expect(filterSummary({ ...EMPTY_FILTER, category: 'none' }, name)).toEqual(['Inbox']);
     expect(filterSummary({ category: 'work', priority: 'high', tag: 'errands', search: '' }, name)).toEqual(['Work', 'High priority', '#errands']);
     expect(filterSummary({ ...EMPTY_FILTER, category: 'gone' }, name)).toEqual(['Category']); // a deleted category doesn't crash
+  });
+});
+
+describe('badgeCount', () => {
+  it('counts open tasks due today or overdue, not future, undated or done ones', () => {
+    const tasks = [
+      task({ title: 'late', dueDate: '2026-06-10' }, 1),
+      task({ title: 'now', dueDate: TODAY }, 2),
+      task({ title: 'soon', dueDate: '2026-06-20' }, 3),
+      task({ title: 'whenever' }, 4),
+      task({ title: 'finished', dueDate: TODAY, done: true }, 5),
+    ];
+    expect(badgeCount(tasks, TODAY)).toBe(2);
+    expect(badgeCount([], TODAY)).toBe(0);
   });
 });

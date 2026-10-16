@@ -5,10 +5,11 @@ import { exportBackup, importBackup } from '@/data/backup';
 import { destroyDatabase } from '@/data/db';
 import { applyDensity, applyTheme, clearPrefs, getPrefs, setPrefs, type DateFormat, type Density, type Theme } from '@/data/prefs';
 import { clearStatsCache } from '@/data/stats';
+import { badgeSupported, refreshBadge } from '@/services/badge';
 import { permission } from '@/services/notify';
 import { installStatus, promptInstall } from '@/services/pwa';
 import { toast } from '@/services/toast';
-import { Dialog, Header, Icon, Page, Section, Segmented, SettingRow } from '@/ui/components';
+import { Dialog, Header, Icon, Page, Section, Segmented, SettingRow, Switch } from '@/ui/components';
 import { useReminders } from '@/ui/hooks';
 import { go } from '@/ui/router';
 import { APP_VERSION } from '@/version';
@@ -207,7 +208,7 @@ export function Settings() {
         </Section>
 
         <Section title="App">
-          <div class="card">
+          <div class="card ruled">
             {install === 'installed' ? (
               <SettingRow icon="phone" label="Installed" hint="Yaad is running as an app on this device.">
                 <Icon name="check" size={20} class="text-teal" />
@@ -222,6 +223,18 @@ export function Settings() {
             ) : (
               <SettingRow icon="phone" label="Not installed" hint="Use your browser’s menu → “Install app” or “Add to Home Screen”.">
                 <span class="shrink-0 text-[0.875rem] text-muted">Browser tab</span>
+              </SettingRow>
+            )}
+            {badgeSupported() && (
+              <SettingRow icon="bell" label="Badge on app icon" hint="Shows how many tasks are due today or overdue.">
+                <Switch
+                  checked={prefs.badge}
+                  onChange={(on) => {
+                    update({ badge: on });
+                    void refreshBadge();
+                  }}
+                  label="Badge on app icon"
+                />
               </SettingRow>
             )}
           </div>

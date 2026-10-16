@@ -73,3 +73,20 @@ export function pingsPerDay(r: Reminder): number {
   if (span <= 0) return 0;
   return Math.floor(span / r.intervalMin) + 1;
 }
+
+/**
+ * Today's progress across the repeating (interval) reminders: pings acknowledged
+ * with "Did it" against how many fit in each reminder's active hours. Disabled
+ * reminders don't count toward the target; counts from an earlier day don't count.
+ */
+export function habitProgress(reminders: Reminder[], today: string): { done: number; target: number } {
+  let done = 0;
+  let target = 0;
+  for (const r of reminders) {
+    if (!r.enabled) continue;
+    const t = pingsPerDay(r);
+    target += t;
+    done += r.firedTodayDate === today ? Math.min(r.firedToday, t) : 0;
+  }
+  return { done, target };
+}

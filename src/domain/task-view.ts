@@ -236,3 +236,8 @@ export function filterSummary(filter: TaskFilter, categoryName: (id: string) => 
   if (filter.tag) parts.push(`#${filter.tag}`);
   return parts;
 }
+
+/** The number on the app-icon badge: open tasks that are due today or overdue. */
+export function badgeCount(tasks: Task[], today: string): number {
+  return tasks.filter((t) => !t.done && t.dueDate !== null && t.dueDate <= today).length;
+}

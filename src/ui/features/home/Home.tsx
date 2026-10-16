@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { everyPhrase, formatDays, localDate, untilPhrase } from '@/domain/dates';
 import { nextDueAt, pingsPerDay } from '@/domain/interval-schedule';
-import { dayProgress, dueBucket, tabTasks, sortTasks } from '@/domain/task-view';
+import { dueBucket, sortTasks, tabTasks } from '@/domain/task-view';
 import type { Reminder, Task } from '@/domain/types';
 import { dueLabelFor, formatClock, formatTimeOfDay } from '@/data/display';
 import { getPrefs, isPaused, pauseFor, resume, setPrefs } from '@/data/prefs';
@@ -15,10 +15,11 @@ import { markDone, snooze, toggle } from '@/data/reminders';
 import { permission, requestPermission } from '@/services/notify';
 import { dismissInstallBanner, promptInstall, shouldShowInstallBanner } from '@/services/pwa';
 import { toast } from '@/services/toast';
-import { Checkbox, Empty, Header, Icon, Meter, Nudge, Page, ProgressRing, Section, Switch } from '@/ui/components';
+import { Checkbox, Empty, Header, Icon, Meter, Nudge, Page, Section, Switch } from '@/ui/components';
 import { PRIORITY_COLOR } from '@/ui/shared/priority';
 import { useTaskComplete } from '@/ui/shared/useTaskComplete';
-import { MissedAlerts } from '@/ui/features/home/MissedAlerts';
+import { MissedAlerts } from './MissedAlerts';
+import { TodayWidget } from './TodayWidget';
 import { useReminders, useNow, useTasks } from '@/ui/hooks';
 import { go } from '@/ui/router';
 
@@ -160,7 +161,6 @@ export function Home() {
   const dueToday = openTasks.filter((t) => dueBucket(t, today) === 'today');
   const focus = [...overdue, ...dueToday].slice(0, 5);
   const comingUp = sortTasks(tabTasks(tasks, 'upcoming', today), 'due').slice(0, 3);
-  const progress = dayProgress(tasks, today);
 
   // Soonest upcoming ping across all active reminders, for the "Next up" line.
   const upcoming = dnd
@@ -242,34 +242,10 @@ export function Home() {
 
         <MissedAlerts now={now} />
 
-        {/* Today at a glance */}
-        {tasks.length > 0 && (
+        {/* Today widget */}
+        {(tasks.length > 0 || reminders.length > 0) && (
           <Section>
-            <div class="card flex items-center gap-4">
-              <ProgressRing done={progress.done} total={progress.total} label={`${progress.done} of ${progress.total} tasks done today`} />
-              <div class="min-w-0 flex-1">
-                <p class="text-[0.8125rem] font-bold uppercase tracking-wide text-muted">Today</p>
-                <p class="text-[1.125rem] font-extrabold leading-snug tracking-[-0.01em]">
-                  {progress.total === 0
-                    ? 'Nothing planned'
-                    : progress.done >= progress.total
-                      ? 'All done 🎉'
-                      : `${progress.total - progress.done} ${progress.total - progress.done === 1 ? 'task' : 'tasks'} to go`}
-                </p>
-                <div class="mt-2 flex flex-wrap gap-1.5">
-                  {dueToday.length > 0 && (
-                    <a href="#/tasks/today" class="chip !min-h-8 !px-3 text-[0.8125rem] !bg-field">
-                      {dueToday.length} due today
-                    </a>
-                  )}
-                  {overdue.length > 0 && (
-                    <a href="#/tasks/overdue" class="chip !min-h-8 !px-3 text-[0.8125rem] !bg-accent !text-on-accent">
-                      {overdue.length} overdue
-                    </a>
-                  )}
-                </div>
-              </div>
-            </div>
+            <TodayWidget tasks={tasks} reminders={reminders} today={today} />
           </Section>
         )}
 

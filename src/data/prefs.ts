@@ -43,6 +43,8 @@ export interface Prefs {
   overdueReminders: boolean;
   /** Tighter spacing for a denser list. */
   density: Density;
+  /** Show the due-or-overdue count on the installed app's icon. */
+  badge: boolean;
 }
 
 const KEY = 'yaad:prefs';
@@ -67,6 +69,7 @@ const DEFAULTS: Prefs = {
   summaryDate: '',
   overdueReminders: true,
   density: 'comfortable',
+  badge: true,
 };
 
 let cache: Prefs | null = null;

@@ -7,6 +7,7 @@ import { loadAll } from '@/data/reminders';
 import { initStats } from '@/data/stats';
 import { completeTaskById, getTask, loadTasks, snoozeTask } from '@/data/tasks';
 import { onPwaChange, pendingUpdate } from '@/services/pwa';
+import { startBadge } from '@/services/badge';
 import { startScheduler } from '@/services/scheduler';
 import { toast } from '@/services/toast';
 import { Icon, Toasts } from '@/ui/components';
@@ -173,6 +174,7 @@ export function App() {
     void Promise.all([loadAll(), loadTasks(), loadCategories(), initStats()]).then(() => {
       setReady(true);
       startScheduler();
+      startBadge();
     });
     const offPwa = onPwaChange(() => {
       const reload = pendingUpdate();
