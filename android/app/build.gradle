@@ -1,6 +1,6 @@
 apply plugin: 'com.android.application'
 
-// One version for the web app and the APK: package.json "2.4.1" -> versionName "2.4.1", versionCode 20401.
+// One version for the web app and the APK: package.json "2.4.3" -> versionName "2.4.3", versionCode 20403.
 def appVersion = new groovy.json.JsonSlurper().parse(file('../../package.json')).version
 def versionParts = appVersion.tokenize('.')*.toInteger()
 

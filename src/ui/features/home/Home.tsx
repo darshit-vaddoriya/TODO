@@ -19,6 +19,7 @@ import { Checkbox, Empty, Header, Icon, Meter, Nudge, Page, Section, Switch } fr
 import { PRIORITY_COLOR } from '@/ui/shared/priority';
 import { useTaskComplete } from '@/ui/shared/useTaskComplete';
 import { MissedAlerts } from './MissedAlerts';
+import { ReminderHealth } from './ReminderHealth';
 import { TodayWidget } from './TodayWidget';
 import { useReminders, useNow, useTasks } from '@/ui/hooks';
 import { go } from '@/ui/router';
@@ -242,6 +243,8 @@ export function Home() {
             }}
           />
         )}
+
+        <ReminderHealth />
 
         <MissedAlerts now={now} />
 

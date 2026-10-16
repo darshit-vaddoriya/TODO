@@ -5,6 +5,14 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
+## [2.4.3] — 2026-10-16
+
+### Added
+- **Home warns when reminders cannot ring** (Android app): a red card when notifications
+  are off or blocked, with an "Allow notifications" / "Open settings" button, and an amber
+  card when the phone's battery saving may hold alarms back, with a "Change" button.
+  Before, the only sign was that nothing happened. Nothing shows when all is well.
+
 ## [2.4.2] — 2026-10-16
 
 ### Fixed
