@@ -120,14 +120,14 @@ describe('pingsPerDay', () => {
 });
 
 describe('habitProgress', () => {
-  it('sums today\'s acknowledged pings against each window\'s target, ignoring disabled reminders', () => {
+  it("sums today's acknowledged pings against each window's target, ignoring disabled reminders", () => {
     const water = make({ id: 'w', intervalMin: 120, startTime: '08:00', endTime: '22:00', firedToday: 3, firedTodayDate: '2026-06-18' }); // target 8
     const eyes = make({ id: 'e', intervalMin: 60, startTime: '09:00', endTime: '17:00', firedToday: 2, firedTodayDate: '2026-06-18' }); // target 9
     const off = make({ id: 'o', enabled: false, firedToday: 5, firedTodayDate: '2026-06-18' });
     expect(habitProgress([water, eyes, off], '2026-06-18')).toEqual({ done: 5, target: 17 });
   });
 
-  it('ignores counts from an earlier day and never exceeds a reminder\'s target', () => {
+  it("ignores counts from an earlier day and never exceeds a reminder's target", () => {
     const stale = make({ firedToday: 4, firedTodayDate: '2026-06-17' });
     expect(habitProgress([stale], '2026-06-18').done).toBe(0);
     const over = make({ intervalMin: 120, startTime: '08:00', endTime: '10:00', firedToday: 99, firedTodayDate: '2026-06-18' }); // target 2

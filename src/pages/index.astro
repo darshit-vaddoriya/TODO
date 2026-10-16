@@ -18,6 +18,16 @@ const csp = [
   "form-action 'none'",
   "object-src 'none'",
 ].join('; ');
+const splashSizes = [
+  [430, 932, 3],
+  [393, 852, 3],
+  [428, 926, 3],
+  [390, 844, 3],
+  [375, 812, 3],
+  [414, 896, 2],
+  [375, 667, 2],
+  [768, 1024, 2],
+];
 ---
 
 <!doctype html>
@@ -34,6 +44,19 @@ const csp = [
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Yaad" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    {
+      splashSizes.map(([w, h, r]) => (
+        <link
+          rel="apple-touch-startup-image"
+          href={`/icons/splash-${w}x${h}.png`}
+          media={`(device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${r}) and (orientation: portrait)`}
+        />
+      ))
+    }
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="preload" href={manropeLatin} as="font" type="font/woff2" crossorigin />
   </head>

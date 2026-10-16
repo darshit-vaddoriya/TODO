@@ -5,6 +5,24 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
+## [2.0.0] — 2026-10-16
+
+### Added
+- **Today widget** on Home: concentric rings for tasks done and reminder pings
+  acknowledged, with an overdue shortcut.
+- **App icon badge** (Badging API) showing tasks due or overdue; toggle in Settings.
+- **New logo and icon set**: any-purpose, maskable and monochrome (Android themed)
+  icons, Apple touch icon, notification badge, iOS launch images.
+- **Long-press shortcuts**: Add a task, Today's tasks, Calendar, New reminder.
+- ARCHITECTURE.md.
+
+### Changed
+- **Filtering**: the tab bar and chip rows are gone. A filter icon opens a sheet
+  (view, category, priority, tag) and a sort icon opens the order sheet.
+- **Layered code structure**: `domain`, `data`, `services`, `ui`, with a test that
+  enforces the dependency rules. Projects are now called Categories; existing
+  data and backups migrate automatically.
+
 ## [1.5.0] — 2026-10-16
 
 A UX pass: less chrome, clearer hierarchy, more feedback.
