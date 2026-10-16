@@ -1,7 +1,7 @@
 {
   "name": "yaad",
   "type": "module",
-  "version": "1.4.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Gentle interval reminders — water, eyes, posture and your own tasks. Everything stays on your phone.",
   "scripts": {
@@ -10,7 +10,9 @@
     "preview": "astro preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "icons": "node scripts/make-icons.mjs"
+    "icons": "node scripts/make-icons.mjs",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"*.{mjs,ts,json}\" \"scripts/*.mjs\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"*.{mjs,ts,json}\" \"scripts/*.mjs\""
   },
   "dependencies": {
     "@astrojs/preact": "^6.0.6",
@@ -24,6 +26,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.5",
     "@vite-pwa/astro": "^1.2.0",
+    "prettier": "^3.9.10",
     "sharp": "^0.35.5",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",

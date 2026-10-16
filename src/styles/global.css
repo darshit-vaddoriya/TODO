@@ -23,6 +23,9 @@
   --color-on-teal: var(--on-teal);
   --color-positive: var(--positive);
   --color-haldi: var(--haldi);
+  --color-on-haldi: var(--on-haldi);
+  --color-info: var(--info);
+  --color-control: var(--control);
 
   --font-sans: "Manrope Variable", Manrope, system-ui, sans-serif;
   --font-mono: "Manrope Variable", Manrope, system-ui, sans-serif;
@@ -34,14 +37,18 @@
   --surface: #ffffff;
   --field: #e4e8e5;
   --ink: #0d1110;
-  --muted: #5f6b66;
+  --muted: #5f6a65;
   --rule: rgb(13 17 16 / 0.08);
-  --accent: #d13434; /* danger / delete */
+  --accent: #c42c2c; /* danger, overdue, high priority */
   --on-accent: #ffffff;
-  --teal: #0d8f74; /* brand: active toggles, progress, primary actions */
+  --teal: #0b755f; /* brand: actions, progress, links, selected states */
   --on-teal: #ffffff;
-  --positive: #18804a;
-  --haldi: #b26f00; /* "due now" / overdue warning accent */
+  --positive: #167745; /* success */
+  --haldi: #935c00; /* warning, medium priority */
+  --on-haldi: #ffffff;
+  --info: #2d6aac; /* low priority, neutral info */
+  --control: #808d88; /* outlines of unchecked boxes and switches (>= 3:1 on surfaces) */
+  --lift: 0 1px 2px rgb(13 17 16 / 0.06), 0 1px 1px rgb(13 17 16 / 0.03); /* resting card shadow */
   /*
    * Declaring dark support stops Chrome's "dark theme for sites" (auto-dark) from
    * inverting the light theme and making controls disappear.
@@ -63,6 +70,10 @@
     --on-teal: #06120f;
     --positive: #52d79a;
     --haldi: #f7b955;
+    --on-haldi: #1a1203;
+    --info: #6aa8f0;
+    --control: #61706b;
+    --lift: none;
     color-scheme: dark;
   }
 }
@@ -80,6 +91,10 @@
   --on-teal: #06120f;
   --positive: #52d79a;
   --haldi: #f7b955;
+  --on-haldi: #1a1203;
+  --info: #6aa8f0;
+  --control: #61706b;
+  --lift: none;
   color-scheme: dark;
 }
 
@@ -124,6 +139,7 @@
     background: var(--surface);
     border-radius: 16px;
     padding: 0.875rem 1rem;
+    box-shadow: var(--lift);
   }
   .ruled > * + * {
     border-top: 1px solid var(--rule);
@@ -160,6 +176,15 @@
   .btn:disabled {
     opacity: 0.45;
     cursor: not-allowed;
+  }
+  /* Press feedback: a quick squeeze so taps feel acknowledged. */
+  .btn,
+  .chip {
+    transition: transform 0.12s ease, background-color 0.15s ease, color 0.15s ease;
+  }
+  .btn:not(:disabled):active,
+  .chip:active {
+    transform: scale(0.97);
   }
   .btn-primary {
     background: var(--teal);
@@ -246,4 +271,76 @@
 }
 [data-density="compact"] .space-y-2\.5 > * + * {
   margin-top: 0;
+}
+
+/* Completing a task: the checkbox pops, then the row slides away (see useTaskComplete). */
+@keyframes pop {
+  0% { transform: scale(0.8); }
+  55% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+.check-pop {
+  animation: pop 0.28s ease-out;
+}
+.task-row {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.task-row[data-leaving="true"] {
+  opacity: 0;
+  transform: translateX(-12px) scale(0.98);
+  pointer-events: none;
+}
+
+/* Shown by the HTML shell and by <App> while data loads, so startup is never a blank screen. */
+@keyframes breathe {
+  0%, 100% { opacity: 0.55; transform: scale(0.96); }
+  50% { opacity: 1; transform: scale(1); }
+}
+.splash {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  align-content: center;
+  gap: 0.75rem;
+  background: var(--paper);
+  color: var(--ink);
+}
+.splash img {
+  width: 4rem;
+  height: 4rem;
+  animation: breathe 1.4s ease-in-out infinite;
+}
+.splash p {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-size: 1.25rem;
+}
+
+/* Bottom sheet (see Sheet): rises from the bottom on a phone, centred dialog on desktop. */
+@keyframes sheet-up {
+  from { transform: translateY(24px); opacity: 0.4; }
+  to { transform: translateY(0); opacity: 1; }
+}
+dialog.sheet {
+  width: 100%;
+  max-width: 34rem;
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  border-radius: 28px 28px 0 0;
+  background: var(--surface);
+  color: var(--ink);
+}
+dialog.sheet::backdrop {
+  background: rgb(0 0 0 / 0.5);
+  backdrop-filter: blur(2px);
+}
+dialog.sheet[open] {
+  animation: sheet-up 0.22s ease-out;
+}
+@media (min-width: 1024px) {
+  dialog.sheet {
+    margin: auto;
+    border-radius: 24px;
+  }
 }

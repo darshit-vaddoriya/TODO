@@ -1,0 +1,9 @@
+dist
+.astro
+dev-dist
+node_modules
+public
+package-lock.json
+*.md
+*.css
+*.astro

@@ -35,7 +35,7 @@ date format, 12 / 24-hour clock, week start, default priority, default reminder
 time, snooze length, quiet hours, daily summary, overdue reminders,
 notification status + test, install status, backup & restore.
 
-See [CHANGELOG.md](CHANGELOG.md) for version history (current: **v1.4.0**).
+See [CHANGELOG.md](CHANGELOG.md) for version history (current: **v1.5.0**).
 
 ## How notifications work — and what they can't promise
 
@@ -89,32 +89,39 @@ nothing binary is committed.
 
 ## Project layout
 
+Four layers; each may only import from the ones above it in this list, and a unit
+test (`src/architecture.test.ts`) fails if that rule is broken. See
+[ARCHITECTURE.md](ARCHITECTURE.md).
+
 ```
 src/
-  lib/
-    types.ts          Reminder · Task · Project · Preset shapes
-    task-model.ts     defaults, record migration, repeat + completion logic  (unit-tested)
-    task-view.ts      filter / sort / tab views / history / progress          (unit-tested)
-    alerts.ts         pure alert planning: fire vs missed, snooze, quiet hours, summary  (unit-tested)
-    calendar.ts       month grid + tasks per day, with repeat projection      (unit-tested)
-    quick-parse.ts    natural-language quick-add                               (unit-tested)
-    format.ts         time / date / interval formatting (12/24h, date styles)  (unit-tested)
-    swipe.ts          swipe-gesture thresholds                                  (unit-tested)
-    tasks.ts          the to-do store (memory ↔ IndexedDB)
-    projects.ts       the categories store
-    store.ts          interval reminders + backup / restore
-    scheduler.ts      the single in-page scheduler (reminders + task alerts)
-    notify.ts         permission + notification / in-app alert / sound / vibration
-    schedule.ts       interval-reminder due logic                              (unit-tested)
-    db.ts             IndexedDB wrapper (idb), schema migrations
-    prefs.ts          settings (localStorage)
-  components/
-    App.tsx           load → start scheduler → route; nav rail / tab bar / Add button
-    router.ts         hash routing + data hooks
-    ui.tsx            shared pieces (Header, Segmented, Dialog, SwipeRow, ReorderList, …)
-    MissedAlerts.tsx  missed-reminder panel
-    screens/          Home · Tasks · TaskEditor · Calendar · Categories · Report ·
-                      Presets · ReminderForm · Settings · ReminderSettings
+  domain/      pure rules, no browser APIs (unit-tested): types, dates, task-model,
+               task-view (filters, tabs, progress, badge count), alerts, calendar,
+               quick-parse, interval-schedule, presets
+  data/        IndexedDB + localStorage: db, tasks, categories, reminders, prefs,
+               display, backup, stats
+  services/    scheduler, notify, badge, pwa, toast
+  ui/          App, router, hooks, components/ (shared pieces), shared/,
+               features/ (home, tasks, calendar, categories, reminders, report, settings)
+  styles/      global.css (design tokens, WCAG AA palette)
 public/
   sw-reminders.js     notification-button routing + best-effort closed-app catch-up
+scripts/
+  make-icons.mjs      generates the logo, icon set and launch images
 ```
+
+## Icons and splash
+
+`npm run icons` draws the logo (a bell with a check and an alert dot) and writes
+the any-purpose, maskable and monochrome (Android themed) icons, the Apple touch
+icon, the notification badge, the long-press shortcut icons and the iOS launch
+images. Long-pressing the app icon offers *Add a task*, *Today's tasks*,
+*Calendar* and *New reminder*.
+
+## Today widget
+
+The Home screen has a Fit-style *Today* card: concentric rings for tasks done
+and reminder pings acknowledged. Where the browser supports the Badging API, the
+installed app icon also shows the count of tasks due or overdue (switch it off in
+Settings). A true home-screen widget is not possible from a web app; it needs a
+native Android wrapper.

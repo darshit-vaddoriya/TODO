@@ -1,4 +1,5 @@
 // @ts-check
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import preact from '@astrojs/preact';
 import tailwindcss from '@tailwindcss/vite';
@@ -15,6 +16,7 @@ export default defineConfig({
   },
   vite: {
     plugins: [tailwindcss()],
+    resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
     build: {
       // Never turn fonts/images into data: URIs; keep everything as same-origin files.
       assetsInlineLimit: 0,
@@ -40,14 +42,22 @@ export default defineConfig({
         background_color: PAPER,
         categories: ['health', 'productivity', 'lifestyle'],
         icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
           { src: '/icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/icons/monochrome-512.png', sizes: '512x512', type: 'image/png', purpose: 'monochrome' },
         ],
         // Long-press the app icon for these. Hash routes open the matching screen.
         shortcuts: [
-          { name: 'New reminder', short_name: 'New', url: '/#/edit', icons: [{ src: '/icons/shortcut-add.png', sizes: '96x96', type: 'image/png' }] },
-          { name: 'Wellness presets', short_name: 'Presets', url: '/#/presets', icons: [{ src: '/icons/shortcut-presets.png', sizes: '96x96', type: 'image/png' }] },
+          { name: 'Add a task', short_name: 'Add task', url: '/#/task/new', icons: [{ src: '/icons/shortcut-add.png', sizes: '96x96', type: 'image/png' }] },
+          {
+            name: "Today's tasks",
+            short_name: 'Today',
+            url: '/#/tasks/today',
+            icons: [{ src: '/icons/shortcut-today.png', sizes: '96x96', type: 'image/png' }],
+          },
+          { name: 'Calendar', short_name: 'Calendar', url: '/#/calendar', icons: [{ src: '/icons/shortcut-calendar.png', sizes: '96x96', type: 'image/png' }] },
+          { name: 'New reminder', short_name: 'Reminder', url: '/#/edit', icons: [{ src: '/icons/shortcut-presets.png', sizes: '96x96', type: 'image/png' }] },
         ],
       },
       workbox: {

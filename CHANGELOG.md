@@ -5,6 +5,63 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
+## [2.0.0] — 2026-10-16
+
+### Added
+- **Today widget** on Home: concentric rings for tasks done and reminder pings
+  acknowledged, with an overdue shortcut.
+- **App icon badge** (Badging API) showing tasks due or overdue; toggle in Settings.
+- **New logo and icon set**: any-purpose, maskable and monochrome (Android themed)
+  icons, Apple touch icon, notification badge, iOS launch images.
+- **Long-press shortcuts**: Add a task, Today's tasks, Calendar, New reminder.
+- ARCHITECTURE.md.
+
+### Changed
+- **Filtering**: the tab bar and chip rows are gone. A filter icon opens a sheet
+  (view, category, priority, tag) and a sort icon opens the order sheet.
+- **Layered code structure**: `domain`, `data`, `services`, `ui`, with a test that
+  enforces the dependency rules. Projects are now called Categories; existing
+  data and backups migrate automatically.
+
+## [1.5.0] — 2026-10-16
+
+A UX pass: less chrome, clearer hierarchy, more feedback.
+
+### Changed
+- **Tasks screen** is compact: the first task is now visible without scrolling
+  on a phone. The five views are one tab bar whose numbers show what is in each
+  (Overdue turns red); today's progress is a single thin strip; search and the
+  category chips are slimmer, with sort / priority / tag filters behind one
+  button.
+- **Task rows** are easier to scan: a priority flag instead of a dot, icons for
+  the date, reminder, repeat, subtasks and category, today in teal and overdue in
+  red, and a 44 px check target.
+- **Home** leads with a single *Today* card — a progress ring, "3 tasks to go",
+  and tappable due / overdue chips — instead of four tiles plus a progress card.
+  The greeting is the title ("Good morning, Darshit"), and a new **Coming up**
+  list previews the next few tasks.
+- **Task editor**: one-tap times (9 AM, noon, 3 PM, 6 PM, 9 PM), reminders sit
+  right under the date, and a bolder title field.
+- **Calendar** no longer puts a dot on every day for a daily task.
+- **Toasts** sit above the Add button and tab bar, are two lines (title + detail)
+  and show at most two at a time.
+- Empty states have an icon and a clear next step.
+- **Colour theme tuned to WCAG AA.** An audit found the light theme failing in
+  many places (teal and amber text at 3.5–4.1:1, white-on-teal buttons at 4.0:1,
+  unchecked boxes at 2.1:1). Brand teal, amber, red and muted grey are each
+  darkened by the minimum needed, so all text and controls now pass in both
+  themes. Switches and checkboxes have a visible outline, priority flags use
+  distinct colours (high red, medium amber, low blue), the warning toast has
+  readable text, and the browser/status-bar colour follows the light or dark
+  scheme from the first paint. A unit test reads the tokens from the stylesheet
+  and fails if any pair drops below AA.
+
+### Added
+- **Completion feedback**: the check pops, the row slides away, and a light
+  vibration on phones; Undo still works.
+- A **startup splash** instead of a blank screen, subtle card shadows in light
+  mode, and press feedback on buttons and chips.
+
 ## [1.4.0] — 2026-10-15
 
 A full personal todo-and-reminder app: everything stays on the device, works
