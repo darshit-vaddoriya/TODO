@@ -90,7 +90,7 @@ export function Categories() {
           </div>
           {projects.length === 0 && (
             <div class="mt-3">
-              <Empty title="No categories yet" body="Group your tasks — Work, Home, Errands… Everything unfiled lives in the Inbox.">
+              <Empty icon="tag" title="No categories yet" body="Group your tasks — Work, Home, Errands… Everything unfiled lives in the Inbox.">
                 <button type="button" class="btn btn-primary" onClick={() => start({ mode: 'new' })}>
                   New category
                 </button>

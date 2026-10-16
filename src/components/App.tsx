@@ -181,7 +181,14 @@ export function App() {
     return () => offPwa();
   }, []);
 
-  if (!ready) return null;
+  if (!ready) {
+    return (
+      <div class="splash" role="status" aria-label="Loading Yaad">
+        <img src="/favicon.svg" alt="" width="64" height="64" />
+        <p>Yaad</p>
+      </div>
+    );
+  }
 
   return (
     <>

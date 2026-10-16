@@ -11,7 +11,7 @@ import { isUrgent } from '../../lib/task-view';
 import { repeatLabel } from '../../lib/task-model';
 import { go, useTasks } from '../router';
 import { completeWithUndo, setDoneWithUndo } from '../taskActions';
-import { Header, Icon, Page, Section } from '../ui';
+import { Checkbox, Header, Icon, Page, Section } from '../ui';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -46,6 +46,10 @@ export function Calendar() {
     setCursor({ year: ty, month: tm });
     setSelected(today);
   };
+
+  // A daily task would put a dot on every single day; its projected days stay out of the grid
+  // (they still show in the day panel).
+  const dotItems = (items: CalendarItem[]) => items.filter((it) => !(it.projected && it.task.repeat.kind === 'daily'));
 
   const dot = (item: CalendarItem) => {
     if (item.done) return 'bg-rule';
@@ -109,7 +113,7 @@ export function Calendar() {
                 >
                   <span class="tnum leading-none">{Number(date.slice(8))}</span>
                   <span class="flex h-1.5 gap-0.5" aria-hidden="true">
-                    {items.slice(0, 3).map((it, i) => (
+                    {dotItems(items).slice(0, 3).map((it, i) => (
                       <span key={i} class={`size-1.5 rounded-full ${isSel ? 'bg-on-teal' : dot(it)}`} />
                     ))}
                   </span>
@@ -132,22 +136,17 @@ export function Calendar() {
           ) : (
             <div class="space-y-2">
               {dayItems.map((it) => (
-                <div key={`${it.task.id}:${it.date}`} class="card flex items-center gap-3 py-3">
+                <div key={`${it.task.id}:${it.date}`} class="card flex items-center gap-3 !py-2">
                   {it.projected ? (
                     <span class="grid size-7 shrink-0 place-items-center text-teal" title="Upcoming repeat">
                       <Icon name="repeat" size={17} />
                     </span>
                   ) : (
-                    <button
-                      type="button"
-                      role="checkbox"
-                      aria-checked={it.done}
-                      aria-label={`${it.done ? 'Re-open' : 'Complete'} ${it.task.title}`}
-                      class={`grid size-7 shrink-0 place-items-center rounded-full border-2 ${it.done ? 'border-teal bg-teal text-on-teal' : 'border-rule text-transparent'}`}
-                      onClick={() => void (it.done ? setDoneWithUndo(it.task, false) : completeWithUndo(it.task))}
-                    >
-                      <Icon name="check" size={16} />
-                    </button>
+                    <Checkbox
+                      checked={it.done}
+                      label={`${it.done ? 'Re-open' : 'Complete'} ${it.task.title}`}
+                      onChange={() => void (it.done ? setDoneWithUndo(it.task, false) : completeWithUndo(it.task))}
+                    />
                   )}
                   <button type="button" class="min-w-0 flex-1 text-left" onClick={() => go(`/task/${it.task.id}`)}>
                     <span class={`block truncate font-semibold ${it.done ? 'text-muted line-through' : ''}`}>{it.task.title}</span>

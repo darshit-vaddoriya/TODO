@@ -34,6 +34,9 @@ const REPEAT_OPTS: { value: RepeatKind; label: string }[] = [
   { value: 'custom', label: 'Custom' },
 ];
 
+/** One-tap times of day. */
+const QUICK_TIMES = ['09:00', '12:00', '15:00', '18:00', '21:00'];
+
 /** Quick reminder choices, in minutes before the due moment. */
 const REMINDER_PRESETS = [0, 5, 10, 30, 60, 1440];
 const UNIT_MINUTES = { minutes: 1, hours: 60, days: 1440 } as const;
@@ -190,7 +193,7 @@ export function TaskEditor({ id, dateHint }: { id?: string; dateHint?: string })
             <Field label="Title">
               <input
                 ref={titleRef}
-                class="field"
+                class="field !text-[1.125rem] !font-bold"
                 placeholder="What needs doing?"
                 value={draft.title}
                 maxLength={120}
@@ -240,60 +243,21 @@ export function TaskEditor({ id, dateHint }: { id?: string; dateHint?: string })
                 </button>
               )}
             </div>
+            {draft.dueDate && (
+              <div class="flex flex-wrap gap-2" role="group" aria-label="Quick times">
+                {QUICK_TIMES.map((t) => (
+                  <button key={t} type="button" class="chip !min-h-9 !px-3 text-[0.8125rem]" aria-pressed={draft.dueTime === t} onClick={() => set({ dueTime: t })}>
+                    {formatClock(t)}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </Section>
 
         <Section title="Priority">
           <div class="card">
             <Segmented label="Priority" options={PRIORITY_OPTS} value={draft.priority} onChange={(v) => set({ priority: v })} />
-          </div>
-        </Section>
-
-        <Section title="Repeat">
-          <div class="card space-y-3">
-            <Segmented<RepeatKind> label="Repeat" options={REPEAT_OPTS} value={repeat.kind} onChange={setRepeatKind} />
-            {repeat.kind === 'weekly' && (
-              <div class="flex gap-1.5" role="group" aria-label="Repeat on days">
-                {weekOrder.map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    class="chip !min-h-11 flex-1 justify-center !px-0 text-[0.8125rem]"
-                    aria-pressed={repeat.days.includes(d)}
-                    onClick={() => toggleDay(d)}
-                  >
-                    {DAY_LABELS[d]}
-                  </button>
-                ))}
-              </div>
-            )}
-            {repeat.kind === 'monthly' && <p class="text-[0.8125rem] text-muted">On day {repeat.day} of every month (the last day in shorter months).</p>}
-            {repeat.kind === 'custom' && (
-              <div class="flex items-center gap-2">
-                <span class="section-label">Every</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={365}
-                  class="field !min-h-11 !w-20 !py-1.5 text-center"
-                  value={repeat.every}
-                  onInput={(e) => set({ repeat: { kind: 'custom', every: Math.max(1, Math.floor(Number(e.currentTarget.value)) || 1), unit: repeat.unit } })}
-                  aria-label="Repeat every"
-                />
-                <select
-                  class="field !min-h-11 !w-auto !py-1.5"
-                  value={repeat.unit}
-                  onChange={(e) => set({ repeat: { kind: 'custom', every: repeat.every, unit: e.currentTarget.value as RepeatUnit } })}
-                  aria-label="Repeat unit"
-                >
-                  <option value="days">days</option>
-                  <option value="weeks">weeks</option>
-                  <option value="months">months</option>
-                </select>
-              </div>
-            )}
-            {repeat.kind !== 'none' && <p class="text-[0.8125rem] text-muted">When you complete it, the next one is scheduled automatically.</p>}
           </div>
         </Section>
 
@@ -354,6 +318,54 @@ export function TaskEditor({ id, dateHint }: { id?: string; dateHint?: string })
             {draft.reminders.length > 0 && !notifyBlocked && (
               <p class="text-[0.75rem] leading-snug text-muted">Reminders fire while Yaad is open. Anything missed while it was closed is shown when you reopen it.</p>
             )}
+          </div>
+        </Section>
+
+        <Section title="Repeat">
+          <div class="card space-y-3">
+            <Segmented<RepeatKind> label="Repeat" options={REPEAT_OPTS} value={repeat.kind} onChange={setRepeatKind} />
+            {repeat.kind === 'weekly' && (
+              <div class="flex gap-1.5" role="group" aria-label="Repeat on days">
+                {weekOrder.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    class="chip !min-h-11 flex-1 justify-center !px-0 text-[0.8125rem]"
+                    aria-pressed={repeat.days.includes(d)}
+                    onClick={() => toggleDay(d)}
+                  >
+                    {DAY_LABELS[d]}
+                  </button>
+                ))}
+              </div>
+            )}
+            {repeat.kind === 'monthly' && <p class="text-[0.8125rem] text-muted">On day {repeat.day} of every month (the last day in shorter months).</p>}
+            {repeat.kind === 'custom' && (
+              <div class="flex items-center gap-2">
+                <span class="section-label">Every</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={365}
+                  class="field !min-h-11 !w-20 !py-1.5 text-center"
+                  value={repeat.every}
+                  onInput={(e) => set({ repeat: { kind: 'custom', every: Math.max(1, Math.floor(Number(e.currentTarget.value)) || 1), unit: repeat.unit } })}
+                  aria-label="Repeat every"
+                />
+                <select
+                  class="field !min-h-11 !w-auto !py-1.5"
+                  value={repeat.unit}
+                  onChange={(e) => set({ repeat: { kind: 'custom', every: repeat.every, unit: e.currentTarget.value as RepeatUnit } })}
+                  aria-label="Repeat unit"
+                >
+                  <option value="days">days</option>
+                  <option value="weeks">weeks</option>
+                  <option value="months">months</option>
+                </select>
+              </div>
+            )}
+            {repeat.kind !== 'none' && <p class="text-[0.8125rem] text-muted">When you complete it, the next one is scheduled automatically.</p>}
           </div>
         </Section>
 

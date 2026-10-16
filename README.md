@@ -35,7 +35,7 @@ date format, 12 / 24-hour clock, week start, default priority, default reminder
 time, snooze length, quiet hours, daily summary, overdue reminders,
 notification status + test, install status, backup & restore.
 
-See [CHANGELOG.md](CHANGELOG.md) for version history (current: **v1.4.0**).
+See [CHANGELOG.md](CHANGELOG.md) for version history (current: **v1.5.0**).
 
 ## How notifications work — and what they can't promise
 

@@ -42,6 +42,7 @@
   --on-teal: #ffffff;
   --positive: #18804a;
   --haldi: #b26f00; /* "due now" / overdue warning accent */
+  --lift: 0 1px 2px rgb(13 17 16 / 0.06), 0 1px 1px rgb(13 17 16 / 0.03); /* resting card shadow */
   /*
    * Declaring dark support stops Chrome's "dark theme for sites" (auto-dark) from
    * inverting the light theme and making controls disappear.
@@ -63,6 +64,7 @@
     --on-teal: #06120f;
     --positive: #52d79a;
     --haldi: #f7b955;
+    --lift: none;
     color-scheme: dark;
   }
 }
@@ -80,6 +82,7 @@
   --on-teal: #06120f;
   --positive: #52d79a;
   --haldi: #f7b955;
+  --lift: none;
   color-scheme: dark;
 }
 
@@ -124,6 +127,7 @@
     background: var(--surface);
     border-radius: 16px;
     padding: 0.875rem 1rem;
+    box-shadow: var(--lift);
   }
   .ruled > * + * {
     border-top: 1px solid var(--rule);
@@ -160,6 +164,15 @@
   .btn:disabled {
     opacity: 0.45;
     cursor: not-allowed;
+  }
+  /* Press feedback: a quick squeeze so taps feel acknowledged. */
+  .btn,
+  .chip {
+    transition: transform 0.12s ease, background-color 0.15s ease, color 0.15s ease;
+  }
+  .btn:not(:disabled):active,
+  .chip:active {
+    transform: scale(0.97);
   }
   .btn-primary {
     background: var(--teal);
@@ -246,4 +259,47 @@
 }
 [data-density="compact"] .space-y-2\.5 > * + * {
   margin-top: 0;
+}
+
+/* Completing a task: the checkbox pops, then the row slides away (see useTaskComplete). */
+@keyframes pop {
+  0% { transform: scale(0.8); }
+  55% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+.check-pop {
+  animation: pop 0.28s ease-out;
+}
+.task-row {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.task-row[data-leaving="true"] {
+  opacity: 0;
+  transform: translateX(-12px) scale(0.98);
+  pointer-events: none;
+}
+
+/* Shown by the HTML shell and by <App> while data loads, so startup is never a blank screen. */
+@keyframes breathe {
+  0%, 100% { opacity: 0.55; transform: scale(0.96); }
+  50% { opacity: 1; transform: scale(1); }
+}
+.splash {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  align-content: center;
+  gap: 0.75rem;
+  background: var(--paper);
+  color: var(--ink);
+}
+.splash img {
+  width: 4rem;
+  height: 4rem;
+  animation: breathe 1.4s ease-in-out infinite;
+}
+.splash p {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-size: 1.25rem;
 }

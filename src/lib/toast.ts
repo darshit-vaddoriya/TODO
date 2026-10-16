@@ -2,6 +2,8 @@
 export interface Toast {
   id: number;
   message: string;
+  /** A quieter second line under the message. */
+  detail?: string;
   tone?: 'info' | 'warn';
   action?: { label: string; run: () => void };
   /** ms; 0 keeps it until dismissed. */
@@ -25,7 +27,7 @@ export function dismissToast(id: number): void {
 
 export function toast(message: string, opts: Omit<Toast, 'id' | 'message'> = {}): number {
   const id = nextId++;
-  toasts = [...toasts.slice(-2), { id, message, ...opts }];
+  toasts = [...toasts.slice(-1), { id, message, ...opts }]; // at most two on screen
   emit();
   const duration = opts.duration ?? (opts.action ? 6000 : 3500);
   if (duration > 0) setTimeout(() => dismissToast(id), duration);

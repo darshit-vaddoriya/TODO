@@ -5,6 +5,36 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
+## [1.5.0] — 2026-10-16
+
+A UX pass: less chrome, clearer hierarchy, more feedback.
+
+### Changed
+- **Tasks screen** is compact: the first task is now visible without scrolling
+  on a phone. The five views are one tab bar whose numbers show what is in each
+  (Overdue turns red); today's progress is a single thin strip; search and the
+  category chips are slimmer, with sort / priority / tag filters behind one
+  button.
+- **Task rows** are easier to scan: a priority flag instead of a dot, icons for
+  the date, reminder, repeat, subtasks and category, today in teal and overdue in
+  red, and a 44 px check target.
+- **Home** leads with a single *Today* card — a progress ring, "3 tasks to go",
+  and tappable due / overdue chips — instead of four tiles plus a progress card.
+  The greeting is the title ("Good morning, Darshit"), and a new **Coming up**
+  list previews the next few tasks.
+- **Task editor**: one-tap times (9 AM, noon, 3 PM, 6 PM, 9 PM), reminders sit
+  right under the date, and a bolder title field.
+- **Calendar** no longer puts a dot on every day for a daily task.
+- **Toasts** sit above the Add button and tab bar, are two lines (title + detail)
+  and show at most two at a time.
+- Empty states have an icon and a clear next step.
+
+### Added
+- **Completion feedback**: the check pops, the row slides away, and a light
+  vibration on phones; Undo still works.
+- A **startup splash** instead of a blank screen, subtle card shadows in light
+  mode, and press feedback on buttons and chips.
+
 ## [1.4.0] — 2026-10-15
 
 A full personal todo-and-reminder app: everything stays on the device, works

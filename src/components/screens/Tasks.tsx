@@ -31,10 +31,11 @@ import {
 import { getPrefs } from '../../lib/prefs';
 import type { Priority, Project, Task } from '../../lib/types';
 import { completeWithUndo, deleteWithUndo, setDoneWithUndo } from '../taskActions';
+import { useTaskComplete } from '../useTaskComplete';
 import { go, useProjects, useTasks } from '../router';
-import { Empty, Header, Icon, Meter, Page, ReorderList, Section, Segmented, SwipeRow } from '../ui';
+import { Checkbox, Empty, Header, Icon, Meter, Page, ReorderList, Section, Segmented, SwipeRow } from '../ui';
 
-const PRIORITY_DOT: Record<Priority, string> = { none: '', low: 'bg-teal', medium: 'bg-haldi', high: 'bg-accent' };
+const PRIORITY_COLOR: Record<Priority, string> = { none: '', low: 'text-teal', medium: 'text-haldi', high: 'text-accent' };
 const PRIORITY_LABEL: Record<Priority, string> = { none: 'No priority', low: 'Low priority', medium: 'Medium priority', high: 'High priority' };
 const PRIORITY_CHIPS: { value: Priority | null; label: string }[] = [
   { value: null, label: 'Any' },
@@ -53,62 +54,68 @@ function dueText(task: Task, today: string): string {
 // --- One task row -----------------------------------------------------------------
 
 function TaskRow({ task, today, projects, handle }: { task: Task; today: string; projects: Project[]; handle?: ComponentChildren }) {
+  const { leaving, toggle } = useTaskComplete(task);
   const overdue = !!task.dueDate && task.dueDate < today;
   const urgent = isUrgent(task, today);
   const subDone = task.subtasks.filter((s) => s.done).length;
   const category = task.projectId ? projects.find((p) => p.id === task.projectId)?.name : undefined;
   const repeat = repeatLabel(task.repeat);
+  const dueClass = overdue ? 'text-accent' : task.dueDate === today ? 'text-teal' : 'text-muted';
 
   const body = (
-    <div class="relative flex items-center gap-3 bg-surface px-4 py-3.5">
+    <div class="relative flex items-center gap-3 bg-surface py-2 pl-4 pr-3">
       {urgent && <span class="absolute inset-y-0 left-0 w-1 bg-accent" aria-hidden="true" />}
       {handle}
-      <button
-        type="button"
-        role="checkbox"
-        aria-checked={task.done}
-        aria-label={`${task.done ? 'Uncheck' : 'Complete'} ${task.title}`}
-        class={`grid size-7 shrink-0 place-items-center rounded-full border-2 transition-colors ${task.done ? 'border-teal bg-teal text-on-teal' : 'border-rule text-transparent'}`}
-        onClick={() => void setDoneWithUndo(task, !task.done)}
-      >
-        <Icon name="check" size={16} />
-      </button>
-      <button type="button" class="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={() => go(`/task/${task.id}`)}>
-        {task.priority !== 'none' && <span class={`size-2.5 shrink-0 rounded-full ${PRIORITY_DOT[task.priority]}`} role="img" aria-label={PRIORITY_LABEL[task.priority]} />}
-        <span class="min-w-0 flex-1">
-          <span class={`block truncate font-semibold ${task.done ? 'text-muted line-through' : ''}`}>{task.title}</span>
-          <span class="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[0.75rem] font-semibold leading-tight">
-            {task.dueDate && (
-              <span class={overdue ? 'text-accent' : 'text-muted'}>
-                {overdue ? 'Overdue · ' : ''}
-                {dueText(task, today)}
-              </span>
-            )}
-            {task.reminders.length > 0 && <Icon name="bell" size={12} class="text-muted" />}
-            {repeat && (
-              <span class="flex items-center gap-1 text-teal">
-                <Icon name="repeat" size={12} /> {repeat}
-              </span>
-            )}
-            {task.subtasks.length > 0 && (
-              <span class="text-muted">
-                {subDone}/{task.subtasks.length}
-              </span>
-            )}
-            {category && <span class="text-muted">{category}</span>}
-            {task.tags.map((t) => (
-              <span key={t} class="text-muted">
-                #{t}
-              </span>
-            ))}
-          </span>
+      <Checkbox checked={task.done || leaving} popping={leaving} label={`${task.done ? 'Uncheck' : 'Complete'} ${task.title}`} onChange={toggle} />
+      <button type="button" class="min-w-0 flex-1 py-1 text-left" onClick={() => go(`/task/${task.id}`)}>
+        <span class="flex items-center gap-1.5">
+          <span class={`truncate font-semibold ${task.done ? 'text-muted line-through' : ''}`}>{task.title}</span>
+          {task.priority !== 'none' && (
+            <>
+              <Icon name="flag" size={14} class={PRIORITY_COLOR[task.priority]} />
+              <span class="sr-only">{PRIORITY_LABEL[task.priority]}</span>
+            </>
+          )}
+        </span>
+        <span class="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[0.75rem] font-semibold leading-tight text-muted">
+          {task.dueDate && (
+            <span class={`flex items-center gap-1 ${dueClass}`}>
+              <Icon name="calendar" size={12} />
+              {overdue ? 'Overdue · ' : ''}
+              {dueText(task, today)}
+            </span>
+          )}
+          {task.reminders.length > 0 && (
+            <span class="flex items-center">
+              <Icon name="bell" size={12} />
+              <span class="sr-only">Has a reminder</span>
+            </span>
+          )}
+          {repeat && (
+            <span class="flex items-center gap-1 text-teal">
+              <Icon name="repeat" size={12} /> {repeat}
+            </span>
+          )}
+          {task.subtasks.length > 0 && (
+            <span class="flex items-center gap-1">
+              <Icon name="check" size={12} /> {subDone}/{task.subtasks.length}
+            </span>
+          )}
+          {category && (
+            <span class="flex items-center gap-1">
+              <Icon name="tag" size={12} /> {category}
+            </span>
+          )}
+          {task.tags.map((t) => (
+            <span key={t}>#{t}</span>
+          ))}
         </span>
       </button>
     </div>
   );
 
   return (
-    <div class="overflow-hidden rounded-[16px] bg-surface">
+    <div class="task-row overflow-hidden rounded-[16px] bg-surface shadow-[var(--lift)]" data-leaving={leaving}>
       {handle || task.done ? body : <SwipeRow onSwipeRight={() => void completeWithUndo(task)} onSwipeLeft={() => deleteWithUndo(task)}>{body}</SwipeRow>}
     </div>
   );
@@ -159,11 +166,11 @@ function QuickAdd({ tab, categoryId }: { tab: TaskTab; categoryId: string | null
   ].filter(Boolean) as string[];
 
   return (
-    <div class="card">
+    <div>
       <div class="flex items-center gap-2">
         <input
           id="quick-add"
-          class="field flex-1"
+          class="field flex-1 !bg-surface shadow-[var(--lift)]"
           placeholder="Add a task… e.g. Call mom 6pm"
           aria-label="Quick add task"
           value={text}
@@ -171,14 +178,14 @@ function QuickAdd({ tab, categoryId }: { tab: TaskTab; categoryId: string | null
           onInput={(e) => setText(e.currentTarget.value)}
           onKeyDown={(e) => e.key === 'Enter' && void add()}
         />
-        <button type="button" class="btn btn-primary shrink-0 px-4" onClick={() => void add()} disabled={!parsed.title} aria-label="Add task">
-          <Icon name="plus" size={20} />
+        <button type="button" class="btn btn-primary !min-h-[52px] shrink-0 px-4" onClick={() => void add()} disabled={!parsed.title} aria-label="Add task">
+          <Icon name="plus" size={22} />
         </button>
       </div>
       {text.trim() && chips.length > 0 && (
-        <p class="mt-2 flex flex-wrap gap-1.5" aria-live="polite">
+        <p class="mt-2 flex flex-wrap gap-1.5 px-1" aria-live="polite">
           {chips.map((c) => (
-            <span key={c} class="rounded-full bg-field px-2.5 py-1 text-[0.75rem] font-semibold text-teal">
+            <span key={c} class="rounded-full bg-surface px-2.5 py-1 text-[0.75rem] font-semibold text-teal shadow-[var(--lift)]">
               {c}
             </span>
           ))}
@@ -251,37 +258,48 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
     return () => removeEventListener('keydown', onKey);
   }, []);
 
-  const emptyCopy: Record<TaskTab, { title: string; body: string }> = {
-    today: { title: 'Nothing due today', body: 'Add a task above, or enjoy the free day.' },
-    upcoming: { title: 'Nothing coming up', body: 'Tasks with a future date show here.' },
-    all: { title: 'No tasks yet', body: 'Type a task above — try “Pay rent tomorrow 6pm !high #home”.' },
-    overdue: { title: 'Nothing overdue 🎉', body: 'You’re all caught up.' },
-    done: { title: 'No completed tasks yet', body: 'Tasks you complete show up here as a history.' },
+  const focusAdd = () => document.getElementById('quick-add')?.focus();
+  const emptyCopy: Record<TaskTab, { title: string; body: string; icon: string; cta?: boolean }> = {
+    today: { title: 'Nothing due today', body: 'A clear day. Add something, or enjoy it.', icon: 'check', cta: true },
+    upcoming: { title: 'Nothing coming up', body: 'Tasks with a future date show up here.', icon: 'calendar' },
+    all: { title: 'No tasks yet', body: 'Type one above — try “Pay rent tomorrow 6pm !high #home”.', icon: 'list', cta: true },
+    overdue: { title: 'Nothing overdue', body: 'You’re all caught up. 🎉', icon: 'check' },
+    done: { title: 'Nothing completed yet', body: 'Finished tasks collect here as a history.', icon: 'check' },
   };
-  const empty = filtering ? { title: 'No matches', body: 'Try a different search or filter.' } : emptyCopy[view];
+  const empty = filtering ? { title: 'No matches', body: 'Try a different search or clear the filters.', icon: 'search', cta: false } : emptyCopy[view];
+  const emptyState = (
+    <Empty title={empty.title} body={empty.body} icon={empty.icon}>
+      {empty.cta && (
+        <button type="button" class="btn btn-primary" onClick={focusAdd}>
+          <Icon name="plus" size={18} /> Add a task
+        </button>
+      )}
+      {filtering && (
+        <button type="button" class="btn btn-quiet" onClick={() => setFilter(EMPTY_FILTER)}>
+          Clear filters
+        </button>
+      )}
+    </Empty>
+  );
 
   const taskContent = () => {
     if (view === 'done') {
-      if (history.length === 0) return <Empty {...empty} />;
+      if (history.length === 0) return emptyState;
       const byDate = new Map<string, typeof history>();
       for (const e of history) byDate.set(e.date, [...(byDate.get(e.date) ?? []), e]);
       return [...byDate].map(([date, entries]) => (
         <Section key={date} title={dayHeading(date, today)}>
           <div class="space-y-2">
             {entries.map((e) => (
-              <div key={`${e.task.id}:${date}`} class="card flex items-center gap-3 py-3">
-                <button
-                  type="button"
-                  role="checkbox"
-                  aria-checked={e.task.done}
-                  aria-label={e.task.done ? `Re-open ${e.task.title}` : `${e.task.title} completed`}
-                  disabled={!e.task.done}
-                  class="grid size-6 shrink-0 place-items-center rounded-full border-2 border-teal bg-teal text-on-teal"
-                  onClick={() => void setDoneWithUndo(e.task, false)}
-                >
-                  <Icon name="check" size={14} />
-                </button>
-                <button type="button" class="min-w-0 flex-1 text-left" onClick={() => go(`/task/${e.task.id}`)}>
+              <div key={`${e.task.id}:${date}`} class="card flex items-center gap-3 !py-2">
+                {e.task.done ? (
+                  <Checkbox checked small label={`Re-open ${e.task.title}`} onChange={() => void setDoneWithUndo(e.task, false)} />
+                ) : (
+                  <span class="grid size-[22px] shrink-0 place-items-center rounded-full bg-teal text-on-teal" role="img" aria-label="Completed">
+                    <Icon name="check" size={13} />
+                  </span>
+                )}
+                <button type="button" class="min-w-0 flex-1 py-1 text-left" onClick={() => go(`/task/${e.task.id}`)}>
                   <span class="block truncate font-semibold text-muted line-through">{e.task.title}</span>
                   {repeatLabel(e.task.repeat) && (
                     <span class="flex items-center gap-1 text-[0.75rem] font-semibold text-teal">
@@ -296,7 +314,7 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
       ));
     }
     if (view === 'upcoming') {
-      if (open.length === 0) return <Empty {...empty} />;
+      if (open.length === 0) return emptyState;
       return groupByDate(open).map((g) => (
         <Section key={g.date} title={dayHeading(g.date, today)}>
           <TaskList tasks={g.tasks} today={today} projects={projects} />
@@ -304,7 +322,7 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
       ));
     }
     if (view === 'all' && allView) {
-      if (open.length === 0) return <Empty {...empty} />;
+      if (open.length === 0) return emptyState;
       if (reorderable) {
         return (
           <Section title={`Open (${open.length})`} action={<span class="text-[0.8125rem] font-semibold text-muted">Drag to reorder</span>}>
@@ -333,7 +351,7 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
         </Section>
       ));
     }
-    if (open.length === 0) return <Empty {...empty} />;
+    if (open.length === 0) return emptyState;
     return <TaskList tasks={open} today={today} projects={projects} />;
   };
 
@@ -341,7 +359,7 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
     <>
       <Header
         title="Tasks"
-        sub={progress.total > 0 ? `${progress.done} of ${progress.total} done today` : undefined}
+        sub={view !== 'today' && progress.total > 0 ? `${progress.done} of ${progress.total} done today` : undefined}
         actions={
           <a href="#/settings" class="grid size-11 place-items-center rounded-full active:bg-field" aria-label="Settings">
             <Icon name="settings" size={22} />
@@ -349,52 +367,53 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
         }
       />
       <Page>
-        <Section>
+        <div class="mb-3">
           <QuickAdd tab={view} categoryId={currentCategory} />
-        </Section>
+        </div>
 
-        <div class="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Task views">
+        {/* Views: the number on each tab is how many tasks are in it. */}
+        <div role="tablist" aria-label="Task views" class="mb-3 flex gap-0.5 rounded-2xl bg-surface p-1 shadow-[var(--lift)]">
           {TASK_TABS.map((t) => {
-            const count = t.id === 'done' ? 0 : counts[t.id];
+            const active = view === t.id;
+            const count = t.id === 'done' ? progress.done : counts[t.id];
+            const alarming = t.id === 'overdue' && count > 0;
             return (
-              <a key={t.id} href={`#/tasks/${t.id}`} role="tab" aria-selected={view === t.id} class="chip shrink-0 !min-h-10 !px-3.5 text-[0.9375rem]" aria-pressed={view === t.id}>
-                {t.label}
-                {count > 0 && (
-                  <span class={`rounded-full px-1.5 text-[0.75rem] tnum ${t.id === 'overdue' && view !== t.id ? 'bg-accent text-on-accent' : 'bg-black/10'}`}>{count}</span>
-                )}
+              <a
+                key={t.id}
+                href={`#/tasks/${t.id}`}
+                role="tab"
+                aria-selected={active}
+                aria-label={`${t.id === 'done' ? 'Completed' : t.label}, ${count}`}
+                class={`flex min-h-[3.25rem] min-w-0 flex-1 flex-col items-center justify-center rounded-xl px-0.5 transition-colors ${active ? 'bg-teal text-on-teal' : 'text-muted'}`}
+              >
+                <span class={`tnum text-[1.125rem] font-extrabold leading-tight ${alarming && !active ? 'text-accent' : ''}`}>{count}</span>
+                <span class="max-w-full truncate text-[0.6875rem] font-bold leading-tight">{t.id === 'done' ? 'Done' : t.label}</span>
               </a>
             );
           })}
         </div>
 
-        {view === 'today' && progress.total > 0 && (
-          <div class="card mb-3">
-            <div class="mb-1.5 flex items-baseline justify-between text-[0.875rem] font-semibold">
-              <span>Today’s progress</span>
-              <span class="tnum text-muted">
-                {progress.done} / {progress.total}
-              </span>
+        {view === 'today' && (progress.total > 0 || counts.overdue > 0) && (
+          <div class="mb-3 px-1">
+            <div class="mb-1.5 flex items-center justify-between text-[0.8125rem] font-semibold">
+              <span class="text-muted">{progress.total > 0 ? `${progress.done} of ${progress.total} done today` : 'Nothing planned for today'}</span>
+              {counts.overdue > 0 && (
+                <a href="#/tasks/overdue" class="flex items-center gap-0.5 font-bold text-accent">
+                  {counts.overdue} overdue <Icon name="back" size={14} class="rotate-180" />
+                </a>
+              )}
             </div>
-            <Meter ratio={progress.total > 0 ? progress.done / progress.total : 0} label={`${progress.done} of ${progress.total} tasks done today`} />
+            {progress.total > 0 && <Meter ratio={progress.done / progress.total} label={`${progress.done} of ${progress.total} tasks done today`} />}
           </div>
-        )}
-        {view === 'today' && counts.overdue > 0 && (
-          <a href="#/tasks/overdue" class="card mb-3 flex items-center gap-3 border border-accent/40 py-3">
-            <Icon name="clock" size={19} class="text-accent" />
-            <span class="min-w-0 flex-1 text-[0.9375rem] font-semibold">
-              {counts.overdue} overdue {counts.overdue === 1 ? 'task' : 'tasks'}
-            </span>
-            <Icon name="back" size={16} class="rotate-180 text-muted" />
-          </a>
         )}
 
         {/* Search + filters */}
-        <div class="card mb-4 space-y-3">
-          <div class="flex items-center gap-2">
+        <div class="mb-3 flex items-center gap-2">
+          <label class="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-2xl bg-surface px-3 shadow-[var(--lift)]">
             <Icon name="search" size={18} class="text-muted" />
             <input
               id="task-search"
-              class="min-h-10 w-full bg-transparent font-semibold outline-none"
+              class="min-h-10 w-full min-w-0 bg-transparent font-semibold outline-none"
               placeholder="Search tasks…"
               aria-label="Search tasks"
               value={filter.search}
@@ -405,76 +424,76 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
                 <Icon name="close" size={16} />
               </button>
             )}
-            <button
-              type="button"
-              class={`relative grid size-9 shrink-0 place-items-center rounded-full ${showFilters ? 'bg-teal text-on-teal' : 'bg-field text-muted'}`}
-              aria-label="Filters and sort"
-              aria-expanded={showFilters}
-              onClick={() => setShowFilters((v) => !v)}
-            >
-              <Icon name="settings" size={17} />
-              {filtering && !showFilters && <span class="absolute right-0.5 top-0.5 size-2.5 rounded-full bg-accent" aria-hidden="true" />}
+          </label>
+          <button
+            type="button"
+            class={`relative grid size-11 shrink-0 place-items-center rounded-2xl shadow-[var(--lift)] ${showFilters ? 'bg-teal text-on-teal' : 'bg-surface text-muted'}`}
+            aria-label="Filters and sort"
+            aria-expanded={showFilters}
+            onClick={() => setShowFilters((v) => !v)}
+          >
+            <Icon name="settings" size={18} />
+            {filtering && !showFilters && <span class="absolute right-1.5 top-1.5 size-2.5 rounded-full bg-accent" aria-hidden="true" />}
+          </button>
+        </div>
+
+        {(projects.length > 0 || filter.project !== 'all') && (
+          <div class="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-0.5" role="group" aria-label="Category">
+            <button type="button" class="chip !min-h-9 !px-3.5" aria-pressed={filter.project === 'all'} onClick={() => setFilter((f) => ({ ...f, project: 'all' }))}>
+              All
             </button>
+            <button type="button" class="chip !min-h-9 !px-3.5" aria-pressed={filter.project === 'none'} onClick={() => setFilter((f) => ({ ...f, project: 'none' }))}>
+              Inbox
+            </button>
+            {projects.map((p) => (
+              <button key={p.id} type="button" class="chip !min-h-9 !px-3.5" aria-pressed={filter.project === p.id} onClick={() => setFilter((f) => ({ ...f, project: p.id }))}>
+                {p.name}
+              </button>
+            ))}
+            <a href="#/categories" class="chip !min-h-9 !px-3.5 text-teal">
+              Manage
+            </a>
           </div>
+        )}
 
-          {(projects.length > 0 || filter.project !== 'all') && (
-            <div class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5" role="group" aria-label="Category">
-              <button type="button" class="chip" aria-pressed={filter.project === 'all'} onClick={() => setFilter((f) => ({ ...f, project: 'all' }))}>
-                All
-              </button>
-              <button type="button" class="chip" aria-pressed={filter.project === 'none'} onClick={() => setFilter((f) => ({ ...f, project: 'none' }))}>
-                Inbox
-              </button>
-              {projects.map((p) => (
-                <button key={p.id} type="button" class="chip" aria-pressed={filter.project === p.id} onClick={() => setFilter((f) => ({ ...f, project: p.id }))}>
-                  {p.name}
-                </button>
-              ))}
-              <a href="#/categories" class="chip text-teal">
-                Manage
-              </a>
+        {showFilters && (
+          <div class="card mb-3 space-y-3">
+            <div>
+              <span class="section-label mb-1.5 block">Sort by</span>
+              <Segmented label="Sort tasks" options={SORT_OPTS} value={sort} onChange={(v) => setSortOverride(v)} />
             </div>
-          )}
-
-          {showFilters && (
-            <div class="space-y-3 border-t border-rule pt-3">
-              <div>
-                <span class="section-label mb-1.5 block">Sort by</span>
-                <Segmented label="Sort tasks" options={SORT_OPTS} value={sort} onChange={(v) => setSortOverride(v)} />
+            <div>
+              <span class="section-label mb-1.5 block">Priority</span>
+              <div class="flex flex-wrap gap-2" role="group" aria-label="Priority filter">
+                {PRIORITY_CHIPS.map((p) => (
+                  <button key={p.label} type="button" class="chip !min-h-9" aria-pressed={filter.priority === p.value} onClick={() => setFilter((f) => ({ ...f, priority: p.value }))}>
+                    {p.label}
+                  </button>
+                ))}
               </div>
+            </div>
+            {tags.length > 0 && (
               <div>
-                <span class="section-label mb-1.5 block">Priority</span>
-                <div class="flex flex-wrap gap-2" role="group" aria-label="Priority filter">
-                  {PRIORITY_CHIPS.map((p) => (
-                    <button key={p.label} type="button" class="chip !min-h-9" aria-pressed={filter.priority === p.value} onClick={() => setFilter((f) => ({ ...f, priority: p.value }))}>
-                      {p.label}
+                <span class="section-label mb-1.5 block">Tag</span>
+                <div class="flex flex-wrap gap-2" role="group" aria-label="Tag filter">
+                  <button type="button" class="chip !min-h-9" aria-pressed={filter.tag === null} onClick={() => setFilter((f) => ({ ...f, tag: null }))}>
+                    All
+                  </button>
+                  {tags.map((t) => (
+                    <button key={t} type="button" class="chip !min-h-9" aria-pressed={filter.tag === t} onClick={() => setFilter((f) => ({ ...f, tag: f.tag === t ? null : t }))}>
+                      #{t}
                     </button>
                   ))}
                 </div>
               </div>
-              {tags.length > 0 && (
-                <div>
-                  <span class="section-label mb-1.5 block">Tag</span>
-                  <div class="flex flex-wrap gap-2" role="group" aria-label="Tag filter">
-                    <button type="button" class="chip !min-h-9" aria-pressed={filter.tag === null} onClick={() => setFilter((f) => ({ ...f, tag: null }))}>
-                      All
-                    </button>
-                    {tags.map((t) => (
-                      <button key={t} type="button" class="chip !min-h-9" aria-pressed={filter.tag === t} onClick={() => setFilter((f) => ({ ...f, tag: f.tag === t ? null : t }))}>
-                        #{t}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {filtering && (
-                <button type="button" class="text-[0.875rem] font-bold text-accent" onClick={() => setFilter(EMPTY_FILTER)}>
-                  Clear all filters
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+            )}
+            {filtering && (
+              <button type="button" class="text-[0.875rem] font-bold text-accent" onClick={() => setFilter(EMPTY_FILTER)}>
+                Clear all filters
+              </button>
+            )}
+          </div>
+        )}
 
         {view === 'done' && history.length > 0 && tasks.some((t) => t.done) && (
           <div class="mb-3 flex justify-end">

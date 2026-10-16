@@ -155,13 +155,70 @@ export function Section({ title, action, children }: { title?: string; action?: 
   );
 }
 
-export function Empty({ title, body, children }: { title: string; body?: string; children?: ComponentChildren }) {
+export function Empty({ title, body, icon, children }: { title: string; body?: string; icon?: string; children?: ComponentChildren }) {
   return (
     <div class="card px-5 py-8 text-center">
+      {icon && (
+        <span class="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-field text-teal">
+          <Icon name={icon} size={24} />
+        </span>
+      )}
       <p class="text-[1.0625rem] font-extrabold">{title}</p>
-      {body && <p class="mt-1 text-muted">{body}</p>}
+      {body && <p class="mx-auto mt-1 max-w-xs text-muted">{body}</p>}
       {children && <div class="mt-4 flex flex-wrap justify-center gap-2">{children}</div>}
     </div>
+  );
+}
+
+/**
+ * A round check control with a 44px tap target (the visible circle is smaller).
+ * `popping` plays the little completion bounce.
+ */
+export function Checkbox({ checked, onChange, label, popping, small }: { checked: boolean; onChange: () => void; label: string; popping?: boolean; small?: boolean }) {
+  return (
+    <button type="button" role="checkbox" aria-checked={checked} aria-label={label} class="-m-2 grid size-11 shrink-0 place-items-center" onClick={onChange}>
+      <span
+        class={`grid place-items-center rounded-full border-2 transition-colors ${small ? 'size-[22px]' : 'size-[26px]'} ${
+          checked ? 'border-teal bg-teal text-on-teal' : 'border-muted/50 text-transparent'
+        } ${popping ? 'check-pop' : ''}`}
+      >
+        <Icon name="check" size={small ? 13 : 16} />
+      </span>
+    </button>
+  );
+}
+
+/** A circular progress ring with its fraction in the middle. Pure SVG attributes, so the CSP is satisfied. */
+export function ProgressRing({ done, total, size = 76, label }: { done: number; total: number; size?: number; label: string }) {
+  const stroke = 8;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const ratio = total > 0 ? Math.min(1, done / total) : 0;
+  return (
+    <span class="relative grid shrink-0 place-items-center" role="img" aria-label={label}>
+      <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} aria-hidden="true">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--field)" stroke-width={stroke} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="var(--teal)"
+          stroke-width={stroke}
+          stroke-linecap="round"
+          stroke-dasharray={c}
+          stroke-dashoffset={c * (1 - ratio)}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          class="transition-[stroke-dashoffset] duration-500"
+        />
+      </svg>
+      <span class="absolute inset-0 grid place-items-center text-center">
+        <span class="display tnum text-[1.25rem] leading-none">
+          {done}
+          <span class="text-[0.8125rem] font-bold text-muted">/{total}</span>
+        </span>
+      </span>
+    </span>
   );
 }
 
@@ -523,18 +580,26 @@ export function SettingRow({
 export function Toasts() {
   const [list, setList] = useState<Toast[]>([]);
   useEffect(() => onToasts(setList), []);
+  // Sit above the floating Add button and tab bar on a phone; bottom-centre on desktop.
   return (
-    <div class="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex flex-col items-center gap-2 px-4 safe-bottom" aria-live="polite" role="status">
+    <div
+      class="pointer-events-none fixed inset-x-0 bottom-[calc(9.25rem+env(safe-area-inset-bottom))] z-50 flex flex-col items-center gap-2 px-4 lg:bottom-8 lg:pl-60"
+      aria-live="polite"
+      role="status"
+    >
       {list.map((toast) => (
         <div
           key={toast.id}
-          class={`pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-[20px] py-1.5 pl-5 pr-2 font-semibold ${toast.tone === 'warn' ? 'bg-haldi text-[#0e0e10]' : 'bg-ink text-paper'}`}
+          class={`pointer-events-auto flex w-full max-w-md items-center gap-2 rounded-[18px] py-1 pl-4 pr-1.5 shadow-lg ${toast.tone === 'warn' ? 'bg-haldi text-[#0e0e10]' : 'bg-ink text-paper'}`}
         >
-          <p class="flex-1 py-1.5">{toast.message}</p>
+          <p class="min-w-0 flex-1 py-1.5 leading-snug">
+            <span class="block font-bold">{toast.message}</span>
+            {toast.detail && <span class="block text-[0.8125rem] font-medium opacity-75">{toast.detail}</span>}
+          </p>
           {toast.action && (
             <button
               type="button"
-              class="min-h-11 px-2 font-semibold underline underline-offset-4"
+              class="min-h-10 shrink-0 rounded-full px-3 text-[0.9375rem] font-bold underline underline-offset-4"
               onClick={() => {
                 toast.action!.run();
                 dismissToast(toast.id);
@@ -543,8 +608,8 @@ export function Toasts() {
               {toast.action.label}
             </button>
           )}
-          <button type="button" class="grid size-11 place-items-center" onClick={() => dismissToast(toast.id)} aria-label="Dismiss">
-            <Icon name="close" size={18} />
+          <button type="button" class="grid size-10 shrink-0 place-items-center rounded-full" onClick={() => dismissToast(toast.id)} aria-label="Dismiss">
+            <Icon name="close" size={17} />
           </button>
         </div>
       ))}

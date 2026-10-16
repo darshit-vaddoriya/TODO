@@ -43,7 +43,7 @@ export async function registerCatchUp(): Promise<void> {
 }
 
 /** Vibrate where supported — and only once the user has interacted, which browsers require. */
-function buzz(pattern: number | number[]): void {
+export function buzz(pattern: number | number[]): void {
   if (!('vibrate' in navigator) || navigator.userActivation?.hasBeenActive === false) return;
   try {
     navigator.vibrate(pattern);
@@ -135,7 +135,7 @@ export interface TaskNotice {
 export async function deliverTaskNotice(notice: TaskNotice): Promise<void> {
   const prefs = getPrefs();
   if (notice.inApp !== false) {
-    toast(`${notice.title} — ${notice.body}`, notice.onSnooze ? { duration: 9000, action: { label: `Snooze ${prefs.snoozeMin}m`, run: notice.onSnooze } } : { duration: 6000 });
+    toast(notice.title, { detail: notice.body, ...(notice.onSnooze ? { duration: 9000, action: { label: `Snooze ${prefs.snoozeMin}m`, run: notice.onSnooze } } : { duration: 6000 }) });
   }
   if (permission() === 'granted') {
     const options: NotificationOptions = {
