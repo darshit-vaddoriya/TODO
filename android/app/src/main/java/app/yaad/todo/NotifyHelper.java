@@ -27,6 +27,26 @@ final class NotifyHelper {
         manager.createNotificationChannel(channel);
     }
 
+    /**
+     * Why a notification would not show right now, or null when it can: notifications turned off
+     * for the app (also the case on Android 13+ until the permission is allowed), or the
+     * "Reminders" channel switched off.
+     */
+    static String blockedReason(Context context) {
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            return "Notifications are turned off for Yaad. Turn them on in the phone's settings.";
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            ensureChannel(context);
+            NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            NotificationChannel channel = manager == null ? null : manager.getNotificationChannel(CHANNEL);
+            if (channel != null && channel.getImportance() == NotificationManager.IMPORTANCE_NONE) {
+                return "The \"Reminders\" notification channel is switched off for Yaad. Turn it on in the phone's settings.";
+            }
+        }
+        return null;
+    }
+
     private static String text(JSONObject item, String key) {
         return item.isNull(key) ? null : item.optString(key, null);
     }
