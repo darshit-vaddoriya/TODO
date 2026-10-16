@@ -3,10 +3,11 @@
  * limits of closed-app notifications, default reminder time, snooze length,
  * quiet hours, the daily summary, overdue nudges, sound and Do Not Disturb.
  */
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { tomorrowAt, untilPhrase } from '@/domain/dates';
 import { formatTimeOfDay } from '@/data/display';
 import { getPrefs, isPaused, pauseFor, pauseUntil, resume, setPrefs, SNOOZE_CHOICES } from '@/data/prefs';
+import { exactAlarmsAllowed, nativeAvailable, openExactAlarmSettings } from '@/services/native-notify';
 import { notificationsSupported, permission, requestPermission, sendTestNotification } from '@/services/notify';
 import { mirrorAlertPrefs } from '@/services/scheduler';
 import { toast } from '@/services/toast';
@@ -36,6 +37,17 @@ export function ReminderSettings() {
   const now = useNow();
   const [prefs, setLocal] = useState(getPrefs());
   const [perm, setPerm] = useState(permission());
+  const native = nativeAvailable();
+  const [exact, setExact] = useState(true);
+
+  // Android only: can alarms ring at the exact minute? Re-check when coming back from system settings.
+  useEffect(() => {
+    if (!native) return;
+    const check = () => void exactAlarmsAllowed().then(setExact);
+    check();
+    document.addEventListener('visibilitychange', check);
+    return () => document.removeEventListener('visibilitychange', check);
+  }, [native]);
 
   const update = (patch: Partial<typeof prefs>) => {
     setPrefs(patch);
@@ -122,22 +134,59 @@ export function ReminderSettings() {
               </SettingRow>
             </div>
           </div>
-          <div class="card mt-2.5 space-y-2 text-[0.8125rem] leading-snug text-muted">
-            <p class="flex gap-2.5">
-              <Icon name="clock" size={17} class="mt-0.5 shrink-0 text-teal" />
-              <span>
-                <b class="text-ink">While Yaad is open</b> (including an installed app kept running), reminders fire on time, as a notification and in the app.
-              </span>
-            </p>
-            <p class="flex gap-2.5">
-              <Icon name="info" size={17} class="mt-0.5 shrink-0 text-haldi" />
-              <span>
-                <b class="text-ink">When it’s closed or suspended</b>, a web app can’t reliably wake itself at an exact minute — that depends on your browser
-                and phone. Anything missed is shown the next time you open Yaad. If exact alarms after closing are essential, use your phone’s clock or calendar
-                alarms as well.
-              </span>
-            </p>
-          </div>
+          {native && perm === 'granted' && !exact && (
+            <div class="card mt-2.5 flex gap-3">
+              <Icon name="alert" size={20} class="mt-0.5 shrink-0 text-accent" />
+              <p class="min-w-0 flex-1 text-[0.9375rem] leading-snug">
+                <b>Reminders may arrive late.</b>
+                <span class="block text-[0.8125rem] text-muted">
+                  Allow “Alarms &amp; reminders” so Android rings at the exact minute, even when Yaad is closed.
+                </span>
+                <button
+                  type="button"
+                  class="mt-2 min-h-9 rounded-full bg-teal px-4 text-[0.875rem] font-bold text-on-teal"
+                  onClick={() => void openExactAlarmSettings()}
+                >
+                  Allow exact alarms
+                </button>
+              </p>
+            </div>
+          )}
+          {native ? (
+            <div class="card mt-2.5 space-y-2 text-[0.8125rem] leading-snug text-muted">
+              <p class="flex gap-2.5">
+                <Icon name="clock" size={17} class="mt-0.5 shrink-0 text-teal" />
+                <span>
+                  <b class="text-ink">Reminders are scheduled with your phone’s alarm system</b>, so they ring even when Yaad is closed.
+                </span>
+              </p>
+              <p class="flex gap-2.5">
+                <Icon name="info" size={17} class="mt-0.5 shrink-0 text-haldi" />
+                <span>
+                  <b class="text-ink">If they still arrive late</b>, set Yaad’s battery use to “Unrestricted” in your phone’s app settings — some phones stop
+                  apps and their alarms to save power.
+                </span>
+              </p>
+            </div>
+          ) : (
+            <div class="card mt-2.5 space-y-2 text-[0.8125rem] leading-snug text-muted">
+              <p class="flex gap-2.5">
+                <Icon name="clock" size={17} class="mt-0.5 shrink-0 text-teal" />
+                <span>
+                  <b class="text-ink">While Yaad is open</b> (including an installed app kept running), reminders fire on time, as a notification and in the
+                  app.
+                </span>
+              </p>
+              <p class="flex gap-2.5">
+                <Icon name="info" size={17} class="mt-0.5 shrink-0 text-haldi" />
+                <span>
+                  <b class="text-ink">When it’s closed or suspended</b>, a web app can’t reliably wake itself at an exact minute — that depends on your browser
+                  and phone. Anything missed is shown the next time you open Yaad. If exact alarms after closing are essential, use your phone’s clock or
+                  calendar alarms as well.
+                </span>
+              </p>
+            </div>
+          )}
         </Section>
 
         <Section title="Task reminders">

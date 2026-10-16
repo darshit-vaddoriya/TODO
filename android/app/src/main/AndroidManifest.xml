@@ -58,6 +58,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Lets reminders ring at the exact minute while the app is closed (the user can revoke it in system settings). -->
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Reminders must ring at the exact minute, also while the app is closed.
+         USE_EXACT_ALARM is granted automatically on Android 13+; on 12 the user can allow
+         SCHEDULE_EXACT_ALARM under "Alarms & reminders" (Settings shows a prompt for it). -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 </manifest>

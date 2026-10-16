@@ -46,6 +46,31 @@ export async function nativeRequestPermission(): Promise<Permission> {
   return cachedPermission;
 }
 
+/**
+ * Whether Android lets Yaad ring at the exact minute. Without it, alarms are
+ * "inexact" and can arrive minutes late (or much later while the phone is idle).
+ * True where the question doesn't apply (older Android, or not the Android app).
+ */
+export async function exactAlarmsAllowed(): Promise<boolean> {
+  if (!nativeAvailable()) return true;
+  try {
+    return (await LocalNotifications.checkExactNotificationSetting()).exact_alarm !== 'denied';
+  } catch {
+    return true;
+  }
+}
+
+/** Open Android's "Alarms & reminders" screen for Yaad; re-schedules once it is allowed. */
+export async function openExactAlarmSettings(): Promise<void> {
+  try {
+    await LocalNotifications.changeExactNotificationSetting();
+  } catch {
+    // The user can still find it under system settings.
+  }
+  lastPlan = ''; // re-schedule so pending alarms are re-registered as exact
+  void syncScheduled();
+}
+
 /** A positive 31-bit id from a string key (the plugin needs integer ids). */
 function idFor(key: string): number {
   let h = 0;
@@ -166,6 +191,11 @@ export async function startNativeNotifications(): Promise<void> {
     return;
   }
   void syncScheduled();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    lastPlan = '';
+    void syncScheduled();
+  });
   subscribeTasks(() => void syncScheduled());
   subscribeReminders(() => void syncScheduled());
 }
