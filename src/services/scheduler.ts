@@ -19,6 +19,7 @@ import { reload, saveMany, snapshot } from '@/data/reminders';
 import { bump } from '@/data/stats';
 import { getTask, pruneFiredAlerts, recordAlerts, snoozeTask, tasksSnapshot } from '@/data/tasks';
 import { refreshBadge } from '@/services/badge';
+import { refreshWidget } from '@/services/widget';
 import { deliverTaskNotice, ping } from '@/services/notify';
 
 const TICK_MS = 20_000;
@@ -119,6 +120,7 @@ export async function tick(now = Date.now()): Promise<void> {
 async function runTick(now: number): Promise<void> {
   await tickReminders(now);
   await tickTasks(now);
+  void refreshWidget();
   void refreshBadge(); // also catches the date rolling over while the app stays open
 }
 
