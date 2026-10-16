@@ -42,3 +42,11 @@ IndexedDB stores: `tasks`, `projects` (the store name is kept for existing users
 the app calls them categories), `reminders`. Records are normalised on read, which
 is where legacy fields migrate (`projectId` → `categoryId`). Backups are versioned
 (currently 6) and still accept older files.
+
+## Android (Capacitor)
+
+The same web build runs in a WebView. Native pieces live in `android/` (a widget
+provider and a `YaadWidget` plugin) and talk to the app through two services:
+`services/widget.ts` sends a summary computed by `domain/widget.ts`, and
+`services/native-notify.ts` schedules alerts planned by `domain/native-schedule.ts`
+with `@capacitor/local-notifications`. Both are no-ops in a browser.

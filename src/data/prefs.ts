@@ -1,4 +1,5 @@
 /** Small non-record preferences kept in localStorage. No reminder data here. */
+import type { AlertSettings } from '@/domain/alerts';
 import type { DateFormat, Priority } from '@/domain/types';
 
 export type { DateFormat };
@@ -139,4 +140,18 @@ export function applyTheme(theme: Theme): void {
 /** Apply the layout density to <html>; CSS reads `data-density`. */
 export function applyDensity(density: Density): void {
   document.documentElement.dataset.density = density;
+}
+
+/** The slice of preferences the pure alert planner needs. */
+export function alertSettings(p: Prefs = getPrefs()): AlertSettings {
+  return {
+    defaultReminderTime: p.defaultReminderTime,
+    quietEnabled: p.quietEnabled,
+    quietStart: p.quietStart,
+    quietEnd: p.quietEnd,
+    overdueReminders: p.overdueReminders,
+    dailySummary: p.dailySummary,
+    summaryTime: p.summaryTime,
+    summaryDate: p.summaryDate,
+  };
 }

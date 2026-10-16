@@ -8,17 +8,18 @@
  * On visibility change (tab refocused) we tick immediately so a reminder that
  * came due while the tab was hidden pings as soon as you look.
  */
-import { dueInPhrase, planAlerts, planSummary, type AlertSettings, type TaskAlert } from '@/domain/alerts';
+import { dueInPhrase, planAlerts, planSummary, type TaskAlert } from '@/domain/alerts';
 import { localDate } from '@/domain/dates';
 import { isDue } from '@/domain/interval-schedule';
 import type { Reminder, Task } from '@/domain/types';
 import { setMeta } from '@/data/db';
 import { friendlyDate, formatClock } from '@/data/display';
-import { getPrefs, setPrefs, type Prefs } from '@/data/prefs';
+import { alertSettings, getPrefs, setPrefs } from '@/data/prefs';
 import { reload, saveMany, snapshot } from '@/data/reminders';
 import { bump } from '@/data/stats';
 import { getTask, pruneFiredAlerts, recordAlerts, snoozeTask, tasksSnapshot } from '@/data/tasks';
 import { refreshBadge } from '@/services/badge';
+import { syncScheduled } from '@/services/native-notify';
 import { refreshWidget } from '@/services/widget';
 import { deliverTaskNotice, ping } from '@/services/notify';
 
@@ -30,20 +31,6 @@ function rolledOver(r: Reminder, today: string): Reminder {
   return r.firedTodayDate === today ? r : { ...r, firedToday: 0, firedTodayDate: today };
 }
 
-/** The slice of preferences the pure alert planner needs. */
-export function alertSettings(p: Prefs = getPrefs()): AlertSettings {
-  return {
-    defaultReminderTime: p.defaultReminderTime,
-    quietEnabled: p.quietEnabled,
-    quietStart: p.quietStart,
-    quietEnd: p.quietEnd,
-    overdueReminders: p.overdueReminders,
-    dailySummary: p.dailySummary,
-    summaryTime: p.summaryTime,
-    summaryDate: p.summaryDate,
-  };
-}
-
 /** Overdue nudges beyond this many tasks collapse into one notification. */
 const MAX_INDIVIDUAL_OVERDUE = 3;
 
@@ -53,7 +40,14 @@ function dueSuffix(task: Task): string {
 
 function reminderNotice(task: Task, alert: TaskAlert) {
   const body = alert.kind === 'snoozed' ? `Snoozed reminder${dueSuffix(task)}` : `Due ${dueInPhrase(alert.offsetMin)}${dueSuffix(task)}`;
-  return { title: `⏰ ${task.title}`, body, tag: `yaad-task-${task.id}`, taskId: task.id, onSnooze: () => void snoozeTask(task.id, getPrefs().snoozeMin) };
+  return {
+    title: `⏰ ${task.title}`,
+    body,
+    tag: `yaad-task-${task.id}`,
+    taskId: task.id,
+    scheduled: true,
+    onSnooze: () => void snoozeTask(task.id, getPrefs().snoozeMin),
+  };
 }
 
 /** Deliver whatever is due for tasks: reminders, snooze wake-ups, overdue nudges and the morning summary. */
@@ -120,6 +114,7 @@ export async function tick(now = Date.now()): Promise<void> {
 async function runTick(now: number): Promise<void> {
   await tickReminders(now);
   await tickTasks(now);
+  void syncScheduled();
   void refreshWidget();
   void refreshBadge(); // also catches the date rolling over while the app stays open
 }

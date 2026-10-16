@@ -118,6 +118,13 @@ icon, the notification badge, the long-press shortcut icons and the iOS launch
 images. Long-pressing the app icon offers *Add a task*, *Today's tasks*,
 *Calendar* and *New reminder*.
 
+## Android app
+
+`npm run android:sync` builds the web app and copies it into `android/` (Capacitor).
+Open it with `npm run android:open`, or take the debug APK from the CI run's
+artifacts. The app adds a home-screen widget and native notifications that are
+scheduled ahead of time, so reminders ring while it is closed.
+
 ## Today widget
 
 The Home screen has a Fit-style *Today* card: concentric rings for tasks done

@@ -120,6 +120,13 @@ async function androidAssets() {
       .resize(layer, layer)
       .png()
       .toFile(join(dir, 'ic_launcher_foreground.png'));
+    // Status-bar icon: white glyph on transparent, 24dp.
+    const stat = Math.round(24 * scale);
+    await mkdir(join(ANDROID_RES, `drawable-${name}`), { recursive: true });
+    await sharp(Buffer.from(badgeSvg(stat)))
+      .resize(stat, stat)
+      .png()
+      .toFile(join(ANDROID_RES, `drawable-${name}`, 'ic_stat_yaad.png'));
     await sharp(Buffer.from(foregroundSvg(layer, true)))
       .resize(layer, layer)
       .png()
