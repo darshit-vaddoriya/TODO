@@ -30,15 +30,19 @@ try:
     xml = open(path, encoding='utf-8').read()
 except OSError:
     sys.exit()
-for m in re.finditer(r'<node[^>]*?(?:text|content-desc)="([^"]*)"[^>]*?bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', xml):
-    if want in m.group(1).lower():
+hits = []
+for m in re.finditer(r'<node[^>]*?(?:text|content-desc)="([^"]*)"[^>]*?bounds="\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]"', xml):
+    text = m.group(1).strip().lower()
+    if want == text or want in text:
         x1, y1, x2, y2 = map(int, m.groups()[1:])
-        print((x1 + x2) // 2, (y1 + y2) // 2)
-        break
+        hits.append((0 if want == text else 1, (x1 + x2) // 2, (y1 + y2) // 2))
+if hits:
+    hits.sort(key=lambda h: h[0])  # an exact match beats a partial one; screen order breaks ties
+    print(hits[0][1], hits[0][2])
 PY
 )
   if [ -n "$xy" ]; then echo "tap '$1' at $xy"; adb shell input tap $xy; return 0; fi
-  echo "could not find '$1' on screen"; return 1
+  echo "could not find '$1' on screen. Texts on screen:"; grep -o 'text="[^"]\+"' "$OUT/ui.xml" | head -30; return 1
 }
 
 adb install -r "$APK" > "$OUT/install.txt" 2>&1 || { cat "$OUT/install.txt"; echo "INSTALL FAILED"; exit 1; }
@@ -68,6 +72,22 @@ else FAIL=1; fi
 adb logcat -d > "$OUT/logcat-settings.txt"
 crashes "$OUT/logcat-settings.txt" "settings screen"
 adb exec-out screencap -p > "$OUT/after-show-now.png" 2>/dev/null || true
+
+echo "== 2b. Wellness presets > add Drink water (the reported crash)"
+adb logcat -c
+adb shell am start -a android.intent.action.VIEW -d "yaad://presets" "$PKG" > /dev/null
+sleep 5
+adb exec-out screencap -p > "$OUT/presets.png" 2>/dev/null || true
+if tap_text "Add"; then
+  sleep 6
+  alive && echo "app still running after adding the preset" || { echo "APP DIED after adding the preset"; FAIL=1; }
+  adb exec-out screencap -p > "$OUT/after-preset.png" 2>/dev/null || true
+  echo "-- alarm registered for the new reminder?"
+  adb shell dumpsys alarm | grep -B1 -A6 "$PKG" | head -24 | tee "$OUT/dumpsys-alarm-preset.txt"
+else FAIL=1; fi
+adb logcat -d > "$OUT/logcat-preset.txt"
+crashes "$OUT/logcat-preset.txt" "adding the preset"
+echo "-- native/JS errors after adding:"; grep -E "Capacitor|AndroidRuntime|YaadWidget|AlarmStore" "$OUT/logcat-preset.txt" | grep -iE "error|exception|fail|denied" | head -20
 
 echo "== 3. closed-app alarm"
 adb shell am force-stop "$PKG"
