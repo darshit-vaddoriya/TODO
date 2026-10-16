@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'preact/hooks';
 export interface RingSpec {
   done: number;
   total: number;
-  /** A CSS colour, normally a theme variable such as "var(--teal)". */
+  /** A CSS colour, normally a theme variable such as "var(--brand)". */
   color: string;
 }
 
@@ -60,7 +60,7 @@ export function Meter({ ratio, label }: { ratio: number; label: string }) {
   }, [ratio]);
   return (
     <span class="block h-1.5 w-full overflow-hidden rounded-full bg-field" role="img" aria-label={label}>
-      <span ref={fill} class="block h-full rounded-full bg-teal transition-[width] duration-500" />
+      <span ref={fill} class="block h-full rounded-full bg-brand transition-[width] duration-500" />
     </span>
   );
 }

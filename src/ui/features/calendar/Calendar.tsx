@@ -53,11 +53,16 @@ export function Calendar() {
   // (they still show in the day panel).
   const dotItems = (items: CalendarItem[]) => items.filter((it) => !(it.projected && it.task.repeat.kind === 'daily'));
 
-  const dot = (item: CalendarItem) => {
-    if (item.done) return 'bg-rule';
-    if (isUrgent(item.task, today) && !item.projected) return 'bg-accent';
-    return item.projected ? 'bg-teal/50' : 'bg-teal';
+  /** One mark per task on a day. Colour says the state; a hollow ring is a future repeat, so state never rests on colour alone. */
+  const markClass = (item: CalendarItem) => {
+    if (item.projected) return 'border-[1.5px] border-brand bg-transparent';
+    if (item.done) return 'bg-positive';
+    if (isUrgent(item.task, today)) return 'bg-accent';
+    return 'bg-brand';
   };
+
+  const openCount = dayItems.filter((it) => !it.done && !it.projected).length;
+  const doneCount = dayItems.filter((it) => it.done).length;
 
   return (
     <>
@@ -95,10 +100,11 @@ export function Calendar() {
               </span>
             ))}
           </div>
-          <div class="grid grid-cols-7 gap-y-1" role="grid" aria-label={monthTitle(cursor.year, cursor.month)}>
+          <div class="grid grid-cols-7" role="grid" aria-label={monthTitle(cursor.year, cursor.month)}>
             {grid.map((date) => {
               const inMonth = date.slice(0, 7) === `${cursor.year}-${String(cursor.month).padStart(2, '0')}`;
               const items = byDay.get(date) ?? [];
+              const shown = dotItems(items);
               const isToday = date === today;
               const isSel = date === selected;
               return (
@@ -107,30 +113,57 @@ export function Calendar() {
                   type="button"
                   role="gridcell"
                   aria-selected={isSel}
+                  aria-current={isToday ? 'date' : undefined}
                   aria-label={`${longDay(date)}, ${items.length === 0 ? 'no tasks' : `${items.length} ${items.length === 1 ? 'task' : 'tasks'}`}`}
-                  class={`mx-auto flex h-12 w-full max-w-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-xl text-[0.9375rem] font-semibold transition-colors ${
-                    isSel ? 'bg-teal text-on-teal' : isToday ? 'bg-field text-teal' : inMonth ? '' : 'text-muted/50'
-                  }`}
+                  class="flex h-[3.75rem] w-full flex-col items-center gap-1 border-t border-rule pt-1.5"
                   onClick={() => setSelected(date)}
                 >
-                  <span class="tnum leading-none">{Number(date.slice(8))}</span>
-                  <span class="flex h-1.5 gap-0.5" aria-hidden="true">
-                    {dotItems(items)
-                      .slice(0, 3)
-                      .map((it, i) => (
-                        <span key={i} class={`size-1.5 rounded-full ${isSel ? 'bg-on-teal' : dot(it)}`} />
-                      ))}
+                  <span
+                    class={`tnum grid size-8 place-items-center rounded-full text-[0.9375rem] leading-none ${
+                      isSel
+                        ? 'bg-brand font-extrabold text-on-brand'
+                        : isToday
+                          ? 'font-extrabold text-brand ring-2 ring-brand'
+                          : inMonth
+                            ? 'font-semibold'
+                            : 'font-semibold text-muted opacity-60'
+                    }`}
+                  >
+                    {Number(date.slice(8))}
+                  </span>
+                  <span class={`flex h-2 items-center gap-1 ${inMonth ? '' : 'opacity-50'}`} aria-hidden="true">
+                    {shown.slice(0, 3).map((it, i) => (
+                      <span key={i} class={`size-2 rounded-full ${markClass(it)}`} />
+                    ))}
+                    {shown.length > 3 && <span class="text-[0.625rem] font-extrabold leading-none text-muted">+{shown.length - 3}</span>}
                   </span>
                 </button>
               );
             })}
           </div>
+          <ul
+            class="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 border-t border-rule pt-2.5 text-[0.75rem] font-semibold text-muted"
+            aria-label="Legend"
+          >
+            <li class="flex items-center gap-1.5">
+              <span class="size-2 rounded-full bg-brand" aria-hidden="true" /> Open
+            </li>
+            <li class="flex items-center gap-1.5">
+              <span class="size-2 rounded-full bg-accent" aria-hidden="true" /> Overdue
+            </li>
+            <li class="flex items-center gap-1.5">
+              <span class="size-2 rounded-full bg-positive" aria-hidden="true" /> Done
+            </li>
+            <li class="flex items-center gap-1.5">
+              <span class="size-2 rounded-full border-[1.5px] border-brand" aria-hidden="true" /> Repeats
+            </li>
+          </ul>
         </div>
 
         <Section
           title={`${longDay(selected)}${selected === today ? ' · Today' : ''}`}
           action={
-            <button type="button" class="flex items-center gap-1 text-[0.875rem] font-bold text-teal" onClick={() => go(`/task/new?date=${selected}`)}>
+            <button type="button" class="flex items-center gap-1 text-[0.875rem] font-bold text-brand" onClick={() => go(`/task/new?date=${selected}`)}>
               <Icon name="plus" size={15} /> Add task
             </button>
           }
@@ -139,10 +172,13 @@ export function Calendar() {
             <div class="card py-6 text-center text-muted">Nothing on {friendlyDate(selected, today) === 'Today' ? 'today' : 'this day'}.</div>
           ) : (
             <div class="space-y-2">
+              <p class="px-1 text-[0.8125rem] font-semibold text-muted">
+                {openCount} to do{doneCount > 0 && ` · ${doneCount} done`}
+              </p>
               {dayItems.map((it) => (
                 <div key={`${it.task.id}:${it.date}`} class="card flex items-center gap-3 !py-2">
                   {it.projected ? (
-                    <span class="grid size-7 shrink-0 place-items-center text-teal" title="Upcoming repeat">
+                    <span class="grid size-7 shrink-0 place-items-center text-brand" title="Upcoming repeat">
                       <Icon name="repeat" size={17} />
                     </span>
                   ) : (

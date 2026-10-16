@@ -47,7 +47,7 @@ export function Categories() {
   const row = (label: string, count: number, onOpen: () => void, actions?: Category) => (
     <div class="flex items-center gap-2 py-1">
       <button type="button" class="flex min-h-12 min-w-0 flex-1 items-center gap-3 text-left" onClick={onOpen}>
-        <span class="grid size-9 shrink-0 place-items-center rounded-[12px] bg-field text-teal">
+        <span class="grid size-9 shrink-0 place-items-center rounded-[12px] bg-field text-brand">
           <Icon name={actions ? 'tag' : 'home'} size={18} />
         </span>
         <span class="min-w-0 flex-1">
@@ -88,7 +88,7 @@ export function Categories() {
         actions={
           <button
             type="button"
-            class="flex min-h-9 items-center gap-1 rounded-full bg-teal px-3.5 text-[0.875rem] font-bold text-on-teal"
+            class="flex min-h-9 items-center gap-1 rounded-full bg-brand px-3.5 text-[0.875rem] font-bold text-on-brand"
             onClick={() => start({ mode: 'new' })}
           >
             <Icon name="plus" size={16} /> New

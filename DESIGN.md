@@ -8,16 +8,21 @@ floating 3-slot tab bar (Reminders · + · Presets). Tokens live in
 
 | Token | Dark | Light | Role |
 |---|---|---|---|
-| paper | `#0b0f0e` | `#eef1ef` | Canvas |
-| surface | `#14191a` | `#ffffff` | Cards, segmented track |
-| field | `#1e2426` | `#e4e8e5` | Inputs, emoji tiles |
-| ink | `#eef2f0` | `#0d1110` | Text, headings |
-| teal (brand) | `#4fd6b4` | `#0d8f74` | Active toggles, primary buttons, next-ping time |
-| accent (danger) | `#ff7a7a` | `#d13434` | Delete |
-| haldi | `#f7b955` | `#b26f00` | "Due now" warning |
+| paper | `#0e1020` | `#f5f6fb` | Canvas |
+| surface | `#161934` | `#ffffff` | Cards, segmented track |
+| field | `#21254a` | `#e9ebf6` | Inputs, tiles |
+| ink | `#eceefc` | `#121430` | Text, headings |
+| muted | `#9aa0c2` | `#585e7d` | Secondary text |
+| brand | `#a5b4fc` | `#4338ca` | Primary buttons, links, selected states, open-task marks |
+| accent | `#ff7a7a` | `#c42c2c` | Overdue, high priority, delete |
+| haldi | `#f7b955` | `#935c00` | Warnings, medium priority |
+| info | `#5cc8e6` | `#0b6a86` | Habits, low priority |
+| positive | `#52d79a` | `#167745` | Done, success |
+
+All pairs are checked for WCAG AA by `src/styles/palette.test.ts`.
 
 Type: Manrope Variable (800 for headings, tabular numbers for clocks).
-Logo: a white reminder bell with a small drop on a teal rounded tile
+Logo: a white reminder bell with a small drop on an indigo rounded tile
 (`scripts/make-icons.mjs`, regenerate with `npm run icons`).
 
 ## Screens
@@ -58,6 +63,6 @@ REMINDERS (Home)                      EDIT REMINDER
    pings are reliable while the app runs; the web can't fire them at an exact
    minute when fully closed. Same stance Hisaab's DESIGN.md takes on bill
    reminders.
-4. **Brand colour moved from blue to teal-green** so it reads as a calm
-   wellness app rather than a fintech one.
+4. **Brand colour is indigo** (it was teal-green): green is kept for "done"
+   only, so a green mark always means finished, and amber/cyan carry today and habits.
 ```

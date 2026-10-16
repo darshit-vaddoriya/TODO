@@ -41,12 +41,12 @@ function OptionRow({
 }) {
   return (
     <button type="button" role="radio" aria-checked={selected} class="flex min-h-12 w-full items-center gap-3 py-1.5 text-left" onClick={onSelect}>
-      <span class={`grid size-9 shrink-0 place-items-center rounded-[12px] ${selected ? 'bg-teal text-on-teal' : 'bg-field text-muted'}`}>
+      <span class={`grid size-9 shrink-0 place-items-center rounded-[12px] ${selected ? 'bg-brand text-on-brand' : 'bg-field text-muted'}`}>
         <Icon name={icon} size={18} />
       </span>
       <span class="min-w-0 flex-1 truncate font-semibold">{label}</span>
       {detail !== undefined && <span class={`tnum text-[0.875rem] font-semibold ${detailClass}`}>{detail}</span>}
-      <span class={`grid size-6 shrink-0 place-items-center ${selected ? 'text-teal' : 'text-transparent'}`}>
+      <span class={`grid size-6 shrink-0 place-items-center ${selected ? 'text-brand' : 'text-transparent'}`}>
         <Icon name="check" size={18} />
       </span>
     </button>
@@ -121,7 +121,7 @@ export function FilterSheet(p: FilterSheetProps) {
       <Group
         title="Category"
         action={
-          <button type="button" class="text-[0.8125rem] font-bold text-teal" onClick={p.onManageCategories}>
+          <button type="button" class="text-[0.8125rem] font-bold text-brand" onClick={p.onManageCategories}>
             Manage
           </button>
         }
@@ -158,7 +158,7 @@ export function FilterSheet(p: FilterSheetProps) {
                 type="button"
                 role="radio"
                 aria-checked={selected}
-                class={`flex min-h-[4.25rem] flex-col items-center justify-center gap-1 rounded-2xl text-[0.8125rem] font-bold ${selected ? 'bg-teal text-on-teal' : 'bg-field'}`}
+                class={`flex min-h-[4.25rem] flex-col items-center justify-center gap-1 rounded-2xl text-[0.8125rem] font-bold ${selected ? 'bg-brand text-on-brand' : 'bg-field'}`}
                 onClick={() => p.onFilterChange({ priority: t.value })}
               >
                 <Icon name={t.icon} size={20} class={selected || !t.value ? '' : PRIORITY_COLOR[t.value]} />
@@ -234,7 +234,7 @@ export function SortSheet({
       {!isDefault && (
         <button
           type="button"
-          class="mt-3 text-[0.875rem] font-bold text-teal"
+          class="mt-3 text-[0.875rem] font-bold text-brand"
           onClick={() => {
             onUseDefault();
             onClose();

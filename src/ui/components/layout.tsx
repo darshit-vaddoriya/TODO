@@ -50,7 +50,7 @@ export function Empty({ title, body, icon, children }: { title: string; body?: s
   return (
     <div class="card px-5 py-8 text-center">
       {icon && (
-        <span class="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-field text-teal">
+        <span class="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-field text-brand">
           <Icon name={icon} size={24} />
         </span>
       )}

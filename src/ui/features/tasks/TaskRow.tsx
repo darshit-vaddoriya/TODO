@@ -23,7 +23,7 @@ export function TaskRow({ task, today, categories, handle }: { task: Task; today
   const subDone = task.subtasks.filter((s) => s.done).length;
   const category = task.categoryId ? categories.find((p) => p.id === task.categoryId)?.name : undefined;
   const repeat = repeatLabel(task.repeat);
-  const dueClass = overdue ? 'text-accent' : task.dueDate === today ? 'text-teal' : 'text-muted';
+  const dueClass = overdue ? 'text-accent' : task.dueDate === today ? 'text-brand' : 'text-muted';
 
   const body = (
     <div class="relative flex items-center gap-3 bg-surface py-2 pl-4 pr-3">
@@ -55,7 +55,7 @@ export function TaskRow({ task, today, categories, handle }: { task: Task; today
             </span>
           )}
           {repeat && (
-            <span class="flex items-center gap-1 text-teal">
+            <span class="flex items-center gap-1 text-brand">
               <Icon name="repeat" size={12} /> {repeat}
             </span>
           )}

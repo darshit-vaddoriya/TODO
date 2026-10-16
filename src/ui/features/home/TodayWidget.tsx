@@ -17,7 +17,7 @@ export function TodayWidget({ tasks, reminders, today }: { tasks: Task[]; remind
 
   const headline = progress.total === 0 ? 'Nothing planned' : left <= 0 ? 'All done 🎉' : `${left} ${left === 1 ? 'task' : 'tasks'} to go`;
   const rings = [
-    { done: progress.done, total: progress.total, color: 'var(--teal)' },
+    { done: progress.done, total: progress.total, color: 'var(--brand)' },
     ...(habits.target > 0 ? [{ done: habits.done, total: habits.target, color: 'var(--info)' }] : []),
   ];
   const summary = `${progress.done} of ${progress.total} tasks done${habits.target > 0 ? `, ${habits.done} of ${habits.target} habits` : ''}`;
@@ -38,7 +38,7 @@ export function TodayWidget({ tasks, reminders, today }: { tasks: Task[]; remind
         <div class="min-w-0 flex-1">
           <div class="flex items-center justify-between gap-2">
             <p class="text-[0.75rem] font-bold uppercase tracking-wide text-muted">Today</p>
-            <a href="#/tasks/today" class="flex items-center gap-0.5 text-[0.8125rem] font-bold text-teal">
+            <a href="#/tasks/today" class="flex items-center gap-0.5 text-[0.8125rem] font-bold text-brand">
               Open <Icon name="back" size={14} class="rotate-180" />
             </a>
           </div>
@@ -46,7 +46,7 @@ export function TodayWidget({ tasks, reminders, today }: { tasks: Task[]; remind
 
           <ul class="mt-2 space-y-1 text-[0.875rem] font-semibold">
             <li class="flex items-center gap-2">
-              <span class="size-2.5 shrink-0 rounded-full bg-teal" aria-hidden="true" />
+              <span class="size-2.5 shrink-0 rounded-full bg-brand" aria-hidden="true" />
               Tasks
               <span class="tnum ml-auto text-muted">
                 {progress.done} of {progress.total}

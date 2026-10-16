@@ -18,7 +18,7 @@ function Bar({ ratio, label }: { ratio: number; label: string }) {
   }, [ratio]);
   return (
     <span class="flex h-20 w-full items-end" role="img" aria-label={label}>
-      <span ref={el} class="block w-full rounded-t-md bg-teal transition-[height] duration-500" />
+      <span ref={el} class="block w-full rounded-t-md bg-brand transition-[height] duration-500" />
     </span>
   );
 }
@@ -83,7 +83,7 @@ export function Report() {
             <Section title="Today">
               <div class="grid grid-cols-2 gap-2.5">
                 <div class="card">
-                  <p class="display text-[2rem] text-teal tnum">{remindersToday}</p>
+                  <p class="display text-[2rem] text-brand tnum">{remindersToday}</p>
                   <p class="text-[0.8125rem] font-semibold text-muted">reminder completions</p>
                 </div>
                 <div class="card">
@@ -119,7 +119,7 @@ export function Report() {
                         {r.emoji}
                       </span>
                       <span class="min-w-0 flex-1 truncate font-semibold">{r.title}</span>
-                      <span class="shrink-0 tnum font-bold text-teal">{r.firedToday}</span>
+                      <span class="shrink-0 tnum font-bold text-brand">{r.firedToday}</span>
                     </div>
                   ))}
                 </div>

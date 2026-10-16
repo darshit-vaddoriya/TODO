@@ -91,7 +91,7 @@ export function ReminderSettings() {
             ) : perm === 'granted' ? (
               <>
                 <div class="flex items-center gap-3">
-                  <span class="grid size-9 shrink-0 place-items-center rounded-[12px] bg-field text-teal">
+                  <span class="grid size-9 shrink-0 place-items-center rounded-[12px] bg-field text-brand">
                     <Icon name="bell" size={19} />
                   </span>
                   <span class="min-w-0 flex-1">
@@ -123,7 +123,7 @@ export function ReminderSettings() {
                   <span class="block font-semibold">Notifications are off</span>
                   <span class="block text-[0.8125rem] text-muted">Allow them so reminders can reach you.</span>
                 </span>
-                <button type="button" class="min-h-9 shrink-0 rounded-full bg-teal px-4 text-[0.875rem] font-bold text-on-teal" onClick={() => void enable()}>
+                <button type="button" class="min-h-9 shrink-0 rounded-full bg-brand px-4 text-[0.875rem] font-bold text-on-brand" onClick={() => void enable()}>
                   Turn on
                 </button>
               </div>
@@ -144,7 +144,7 @@ export function ReminderSettings() {
                 </span>
                 <button
                   type="button"
-                  class="mt-2 min-h-9 rounded-full bg-teal px-4 text-[0.875rem] font-bold text-on-teal"
+                  class="mt-2 min-h-9 rounded-full bg-brand px-4 text-[0.875rem] font-bold text-on-brand"
                   onClick={() => void openExactAlarmSettings()}
                 >
                   Allow exact alarms
@@ -155,7 +155,7 @@ export function ReminderSettings() {
           {native ? (
             <div class="card mt-2.5 space-y-2 text-[0.8125rem] leading-snug text-muted">
               <p class="flex gap-2.5">
-                <Icon name="clock" size={17} class="mt-0.5 shrink-0 text-teal" />
+                <Icon name="clock" size={17} class="mt-0.5 shrink-0 text-brand" />
                 <span>
                   <b class="text-ink">Reminders are scheduled with your phone’s alarm system</b>, so they ring even when Yaad is closed.
                 </span>
@@ -171,7 +171,7 @@ export function ReminderSettings() {
           ) : (
             <div class="card mt-2.5 space-y-2 text-[0.8125rem] leading-snug text-muted">
               <p class="flex gap-2.5">
-                <Icon name="clock" size={17} class="mt-0.5 shrink-0 text-teal" />
+                <Icon name="clock" size={17} class="mt-0.5 shrink-0 text-brand" />
                 <span>
                   <b class="text-ink">While Yaad is open</b> (including an installed app kept running), reminders fire on time, as a notification and in the
                   app.
@@ -256,7 +256,7 @@ export function ReminderSettings() {
                 </span>
                 <button
                   type="button"
-                  class="min-h-9 shrink-0 rounded-full bg-teal px-4 text-[0.875rem] font-bold text-on-teal"
+                  class="min-h-9 shrink-0 rounded-full bg-brand px-4 text-[0.875rem] font-bold text-on-brand"
                   onClick={() => {
                     resume();
                     update({});

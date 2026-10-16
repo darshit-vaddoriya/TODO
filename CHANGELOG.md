@@ -5,6 +5,20 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
+## [2.2.0] — 2026-10-16
+
+### Changed
+- **New colour theme.** The all-green look is replaced by an indigo brand with a
+  cool-white (light) or deep-navy (dark) canvas; amber marks today and warnings,
+  cyan marks habits and low priority, and green now only ever means *done*. Every
+  pair still passes WCAG AA (checked by a test). The app icon, launch screens,
+  Android widget and status-bar colours follow.
+- **Calendar is easier to read.** Rows are separated, today has a ring and the
+  selected day a filled circle, marks are larger and show state by colour *and*
+  shape (open, overdue, done, hollow ring for a future repeat), busy days show
+  "+N", a legend explains the marks, and the day list says "N to do · M done".
+- The `teal` colour token is now called `brand`.
+
 ## [2.1.1] — 2026-10-16
 
 ### Changed

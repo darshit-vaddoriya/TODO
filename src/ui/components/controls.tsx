@@ -23,7 +23,7 @@ export function Checkbox({
     <button type="button" role="checkbox" aria-checked={checked} aria-label={label} class="-m-2 grid size-11 shrink-0 place-items-center" onClick={onChange}>
       <span
         class={`grid place-items-center rounded-full border-2 transition-colors ${small ? 'size-[22px]' : 'size-[26px]'} ${
-          checked ? 'border-teal bg-teal text-on-teal' : 'border-control text-transparent'
+          checked ? 'border-brand bg-brand text-on-brand' : 'border-control text-transparent'
         } ${popping ? 'check-pop' : ''}`}
       >
         <Icon name="check" size={small ? 13 : 16} />
@@ -40,7 +40,7 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
       role="switch"
       aria-checked={checked}
       aria-label={label}
-      class={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${checked ? 'bg-teal' : 'bg-control'}`}
+      class={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${checked ? 'bg-brand' : 'bg-control'}`}
       onClick={() => onChange(!checked)}
     >
       <span class={`inline-block size-5 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -67,7 +67,7 @@ export function Segmented<T extends string | number>({
           type="button"
           role="radio"
           aria-checked={value === o.value}
-          class={`min-h-10 flex-1 truncate rounded-full px-1 text-[0.8125rem] font-bold tracking-tight ${value === o.value ? 'bg-teal text-on-teal' : 'text-muted'}`}
+          class={`min-h-10 flex-1 truncate rounded-full px-1 text-[0.8125rem] font-bold tracking-tight ${value === o.value ? 'bg-brand text-on-brand' : 'text-muted'}`}
           onClick={() => onChange(o.value)}
           key={o.value}
         >
@@ -82,11 +82,11 @@ export function Segmented<T extends string | number>({
 export function Nudge({ icon, text, action, onAction, onClose }: { icon: string; text: string; action: string; onAction: () => void; onClose: () => void }) {
   return (
     <div class="card mb-4 flex items-center gap-3 py-2.5 pl-3 pr-1.5">
-      <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-field text-teal">
+      <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-field text-brand">
         <Icon name={icon} size={19} />
       </span>
       <p class="min-w-0 flex-1 text-[0.875rem] font-semibold leading-snug">{text}</p>
-      <button type="button" class="min-h-9 shrink-0 rounded-full bg-teal px-3.5 text-[0.8125rem] font-bold text-on-teal" onClick={onAction}>
+      <button type="button" class="min-h-9 shrink-0 rounded-full bg-brand px-3.5 text-[0.8125rem] font-bold text-on-brand" onClick={onAction}>
         {action}
       </button>
       <button type="button" class="grid size-9 shrink-0 place-items-center text-muted" onClick={onClose} aria-label="Dismiss">
@@ -119,7 +119,7 @@ export function SettingRow({
 }) {
   const body = (
     <>
-      <span class={`grid size-9 shrink-0 place-items-center rounded-[12px] bg-field ${danger ? 'text-accent' : 'text-teal'}`}>
+      <span class={`grid size-9 shrink-0 place-items-center rounded-[12px] bg-field ${danger ? 'text-accent' : 'text-brand'}`}>
         <Icon name={icon} size={19} />
       </span>
       <span class="min-w-0 flex-1">

@@ -119,7 +119,7 @@ export function ReminderForm({ id }: { id?: string }) {
                 every {formatInterval(m)}
               </button>
             ))}
-            <div class={`chip gap-2 ${custom !== '' ? 'bg-teal text-on-teal' : ''}`}>
+            <div class={`chip gap-2 ${custom !== '' ? 'bg-brand text-on-brand' : ''}`}>
               <span>every</span>
               <input
                 type="number"
@@ -159,7 +159,7 @@ export function ReminderForm({ id }: { id?: string }) {
                 key={d}
                 aria-pressed={dayOn(d)}
                 aria-label={`Day ${d}`}
-                class={`grid size-11 flex-1 place-items-center rounded-full font-bold ${dayOn(d) ? 'bg-teal text-on-teal' : 'bg-field text-muted'}`}
+                class={`grid size-11 flex-1 place-items-center rounded-full font-bold ${dayOn(d) ? 'bg-brand text-on-brand' : 'bg-field text-muted'}`}
                 onClick={() => toggleDay(d)}
               >
                 {WEEKDAY_LABELS[d]}
@@ -177,7 +177,7 @@ export function ReminderForm({ id }: { id?: string }) {
           <Switch checked={r.vibrate} onChange={(on) => set('vibrate', on)} label="Vibrate on ping" />
         </div>
 
-        <button type="button" class="flex w-full items-center justify-center gap-2 text-[0.9375rem] font-bold text-teal" onClick={() => void sendTest()}>
+        <button type="button" class="flex w-full items-center justify-center gap-2 text-[0.9375rem] font-bold text-brand" onClick={() => void sendTest()}>
           <Icon name="bell" size={18} /> Send a test ping now
         </button>
 

@@ -426,7 +426,7 @@ export function TaskEditor({ id, dateHint }: { id?: string; dateHint?: string })
                   </option>
                 ))}
               </select>
-              <button type="button" class="text-[0.8125rem] font-bold text-teal" onClick={() => go('/categories')}>
+              <button type="button" class="text-[0.8125rem] font-bold text-brand" onClick={() => go('/categories')}>
                 Manage
               </button>
             </div>
@@ -466,7 +466,7 @@ export function TaskEditor({ id, dateHint }: { id?: string; dateHint?: string })
                   role="checkbox"
                   aria-checked={s.done}
                   aria-label={`${s.done ? 'Uncheck' : 'Check'} ${s.title}`}
-                  class={`grid size-6 shrink-0 place-items-center rounded-md border-2 ${s.done ? 'border-teal bg-teal text-on-teal' : 'border-rule text-transparent'}`}
+                  class={`grid size-6 shrink-0 place-items-center rounded-md border-2 ${s.done ? 'border-brand bg-brand text-on-brand' : 'border-rule text-transparent'}`}
                   onClick={() => set({ subtasks: draft.subtasks.map((x) => (x.id === s.id ? { ...x, done: !x.done } : x)) })}
                 >
                   <Icon name="check" size={13} />
@@ -494,7 +494,7 @@ export function TaskEditor({ id, dateHint }: { id?: string; dateHint?: string })
               />
               <button
                 type="button"
-                class="grid size-11 shrink-0 place-items-center rounded-full bg-field text-teal"
+                class="grid size-11 shrink-0 place-items-center rounded-full bg-field text-brand"
                 onClick={addSub}
                 disabled={!subTitle.trim()}
                 aria-label="Add subtask"
@@ -509,7 +509,7 @@ export function TaskEditor({ id, dateHint }: { id?: string; dateHint?: string })
           <Section>
             <div class="flex flex-wrap gap-x-6 gap-y-2 px-1">
               {!draft.done && (
-                <button type="button" class="flex items-center gap-2 text-[0.9375rem] font-bold text-teal" onClick={() => void complete()}>
+                <button type="button" class="flex items-center gap-2 text-[0.9375rem] font-bold text-brand" onClick={() => void complete()}>
                   <Icon name="check" size={17} /> Mark complete
                 </button>
               )}

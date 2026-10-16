@@ -73,7 +73,7 @@ export function SwipeRow({ onSwipeRight, onSwipeLeft, children }: { onSwipeRight
 
   return (
     <div class="relative overflow-hidden rounded-[16px]">
-      <div ref={right} class="pointer-events-none absolute inset-0 flex items-center justify-start bg-teal px-5 text-on-teal opacity-0" aria-hidden="true">
+      <div ref={right} class="pointer-events-none absolute inset-0 flex items-center justify-start bg-brand px-5 text-on-brand opacity-0" aria-hidden="true">
         <Icon name="check" size={22} />
       </div>
       <div ref={left} class="pointer-events-none absolute inset-0 flex items-center justify-end bg-accent px-5 text-on-accent opacity-0" aria-hidden="true">

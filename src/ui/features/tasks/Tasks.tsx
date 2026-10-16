@@ -59,7 +59,7 @@ function ToolbarButton({ icon, label, badge, dot, onClick }: { icon: string; lab
       type="button"
       aria-label={badge ? `${label}, ${badge} active` : label}
       aria-haspopup="dialog"
-      class={`relative grid size-11 shrink-0 place-items-center rounded-2xl shadow-[var(--lift)] ${active ? 'bg-teal text-on-teal' : 'bg-surface text-ink'}`}
+      class={`relative grid size-11 shrink-0 place-items-center rounded-2xl shadow-[var(--lift)] ${active ? 'bg-brand text-on-brand' : 'bg-surface text-ink'}`}
       onClick={onClick}
     >
       <Icon name={icon} size={20} />
@@ -178,14 +178,14 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
                 {e.task.done ? (
                   <Checkbox checked small label={`Re-open ${e.task.title}`} onChange={() => void setDoneWithUndo(e.task, false)} />
                 ) : (
-                  <span class="grid size-[22px] shrink-0 place-items-center rounded-full bg-teal text-on-teal" role="img" aria-label="Completed">
+                  <span class="grid size-[22px] shrink-0 place-items-center rounded-full bg-brand text-on-brand" role="img" aria-label="Completed">
                     <Icon name="check" size={13} />
                   </span>
                 )}
                 <button type="button" class="min-w-0 flex-1 py-1 text-left" onClick={() => go(`/task/${e.task.id}`)}>
                   <span class="block truncate font-semibold text-muted line-through">{e.task.title}</span>
                   {repeatLabel(e.task.repeat) && (
-                    <span class="flex items-center gap-1 text-[0.75rem] font-semibold text-teal">
+                    <span class="flex items-center gap-1 text-[0.75rem] font-semibold text-brand">
                       <Icon name="repeat" size={12} /> {repeatLabel(e.task.repeat)}
                     </span>
                   )}
@@ -288,7 +288,7 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
           <p class="mb-3 flex items-center gap-2 px-1 text-[0.8125rem] font-semibold text-muted">
             <Icon name="filter" size={14} />
             <span class="min-w-0 flex-1 truncate">{summary.join(' · ')}</span>
-            <button type="button" class="shrink-0 font-bold text-teal" onClick={clearFilters}>
+            <button type="button" class="shrink-0 font-bold text-brand" onClick={clearFilters}>
               Clear
             </button>
           </p>

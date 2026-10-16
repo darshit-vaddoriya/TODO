@@ -46,7 +46,7 @@ function TaskLine({ task, today }: { task: Task; today: string }) {
           <span class="truncate font-semibold">{task.title}</span>
           {task.priority !== 'none' && <Icon name="flag" size={14} class={PRIORITY_COLOR[task.priority]} />}
         </span>
-        <span class={`flex items-center gap-1 text-[0.75rem] font-semibold ${overdue ? 'text-accent' : task.dueDate === today ? 'text-teal' : 'text-muted'}`}>
+        <span class={`flex items-center gap-1 text-[0.75rem] font-semibold ${overdue ? 'text-accent' : task.dueDate === today ? 'text-brand' : 'text-muted'}`}>
           <Icon name="calendar" size={12} />
           {overdue ? `Overdue · ${when}` : when}
         </span>
@@ -82,7 +82,7 @@ function ReminderTile({ reminder, now, paused }: { reminder: Reminder; now: numb
               ) : due === null ? (
                 <span class="text-muted">No ping in the next week</span>
               ) : (
-                <span class="text-teal">
+                <span class="text-brand">
                   Next {untilPhrase(due - now)}
                   <span class="text-muted"> · {formatTimeOfDay(new Date(due))}</span>
                 </span>
@@ -114,7 +114,7 @@ function ReminderTile({ reminder, now, paused }: { reminder: Reminder; now: numb
           </button>
           <button
             type="button"
-            class="min-h-9 shrink-0 rounded-full bg-teal px-3.5 text-[0.8125rem] font-bold text-on-teal inline-flex items-center gap-1"
+            class="min-h-9 shrink-0 rounded-full bg-brand px-3.5 text-[0.8125rem] font-bold text-on-brand inline-flex items-center gap-1"
             onClick={() => void markDone(reminder.id)}
           >
             <Icon name="check" size={16} /> Did it
@@ -125,7 +125,7 @@ function ReminderTile({ reminder, now, paused }: { reminder: Reminder; now: numb
   );
 }
 
-const SECTION_LINK = 'flex items-center gap-1 text-[0.8125rem] font-bold text-teal';
+const SECTION_LINK = 'flex items-center gap-1 text-[0.8125rem] font-bold text-brand';
 
 export function Home() {
   const reminders = useReminders();
@@ -207,7 +207,11 @@ export function Home() {
               All reminders paused
               <span class="block text-[0.8125rem] font-normal text-muted">Resumes {formatTimeOfDay(new Date(pausedUntil))}</span>
             </p>
-            <button type="button" class="min-h-9 shrink-0 rounded-full bg-teal px-3.5 text-[0.8125rem] font-bold text-on-teal" onClick={() => doPause(resume)}>
+            <button
+              type="button"
+              class="min-h-9 shrink-0 rounded-full bg-brand px-3.5 text-[0.8125rem] font-bold text-on-brand"
+              onClick={() => doPause(resume)}
+            >
               Resume
             </button>
           </div>
@@ -303,7 +307,7 @@ export function Home() {
                 <span class="flex items-center gap-3">
                   {!dnd && upcoming && (
                     <span class="flex items-center gap-1 text-[0.8125rem] font-semibold text-muted">
-                      <Icon name="clock" size={14} class="text-teal" /> next {untilPhrase(upcoming.at - now)}
+                      <Icon name="clock" size={14} class="text-brand" /> next {untilPhrase(upcoming.at - now)}
                     </span>
                   )}
                   <a href="#/edit" class={SECTION_LINK}>
@@ -315,7 +319,7 @@ export function Home() {
               {reminders.length === 0 ? (
                 <div class="card text-[0.9375rem] text-muted">
                   Repeating pings for habits like water and eye breaks.{' '}
-                  <a href="#/presets" class="font-bold text-teal">
+                  <a href="#/presets" class="font-bold text-brand">
                     Browse presets
                   </a>
                 </div>
@@ -339,7 +343,7 @@ export function Home() {
             )}
             {reminders.length > 0 && (
               <Section>
-                <a href="#/presets" class="flex items-center justify-center gap-2 text-[0.9375rem] font-bold text-teal">
+                <a href="#/presets" class="flex items-center justify-center gap-2 text-[0.9375rem] font-bold text-brand">
                   <Icon name="sparkles" size={18} /> Browse wellness presets
                 </a>
               </Section>

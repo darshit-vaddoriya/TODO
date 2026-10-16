@@ -4,7 +4,7 @@ const config: CapacitorConfig = {
   appId: 'app.yaad.todo',
   appName: 'Yaad',
   webDir: 'dist',
-  android: { backgroundColor: '#0b0f0e' },
+  android: { backgroundColor: '#0e1020' },
 };
 
 export default config;

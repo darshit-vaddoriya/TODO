@@ -60,7 +60,7 @@ export function QuickAdd({ tab, categoryId }: { tab: TaskTab; categoryId: string
       {text.trim() && chips.length > 0 && (
         <p class="mt-2 flex flex-wrap gap-1.5 px-1" aria-live="polite">
           {chips.map((c) => (
-            <span key={c} class="rounded-full bg-surface px-2.5 py-1 text-[0.75rem] font-semibold text-teal shadow-[var(--lift)]">
+            <span key={c} class="rounded-full bg-surface px-2.5 py-1 text-[0.75rem] font-semibold text-brand shadow-[var(--lift)]">
               {c}
             </span>
           ))}
