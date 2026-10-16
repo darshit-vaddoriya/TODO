@@ -11,6 +11,7 @@
 import { dueInPhrase, planAlerts, planSummary, type TaskAlert } from '@/domain/alerts';
 import { localDate } from '@/domain/dates';
 import { isDue, nextAnchor } from '@/domain/interval-schedule';
+import { nextUp } from '@/domain/native-schedule';
 import type { Reminder, Task } from '@/domain/types';
 import { setMeta } from '@/data/db';
 import { friendlyDate, formatClock } from '@/data/display';
@@ -24,7 +25,7 @@ import { refreshWidget } from '@/services/widget';
 import { deliverTaskNotice, ping } from '@/services/notify';
 
 const TICK_MS = 20_000;
-let timer: ReturnType<typeof setInterval> | null = null;
+let timer: ReturnType<typeof setTimeout> | null = null;
 
 /** Reset the per-day fired counter when the local date rolls over. */
 function rolledOver(r: Reminder, today: string): Reminder {
@@ -138,12 +139,24 @@ async function tickReminders(now: number): Promise<void> {
   if (updates.length > 0) await saveMany(updates);
 }
 
+/**
+ * Check, then sleep until whatever rings next (at most TICK_MS), so a reminder fires on its
+ * second rather than up to TICK_MS late. Browsers may still slow timers in a background tab.
+ */
+async function loop(): Promise<void> {
+  await tick();
+  if (timer === null) return; // stopped meanwhile
+  const prefs = getPrefs();
+  const next = nextUp(tasksSnapshot(), snapshot(), Date.now(), alertSettings(prefs), prefs.pausedUntil);
+  const wait = next ? Math.min(TICK_MS, Math.max(500, next.at - Date.now() + 150)) : TICK_MS;
+  timer = setTimeout(() => void loop(), wait);
+}
+
 export function startScheduler(): void {
   if (timer !== null) return;
   mirrorAlertPrefs();
   // A first tick shortly after load catches anything already overdue.
-  setTimeout(() => void tick(), 1500);
-  timer = setInterval(() => void tick(), TICK_MS);
+  timer = setTimeout(() => void loop(), 1500);
   document.addEventListener('visibilitychange', onVisible);
   // The service worker posts this after a "Snooze" notification action writes to IndexedDB.
   navigator.serviceWorker?.addEventListener('message', onSwMessage);
@@ -171,7 +184,7 @@ export function mirrorAlertPrefs(): void {
 
 export function stopScheduler(): void {
   if (timer !== null) {
-    clearInterval(timer);
+    clearTimeout(timer);
     timer = null;
   }
   document.removeEventListener('visibilitychange', onVisible);

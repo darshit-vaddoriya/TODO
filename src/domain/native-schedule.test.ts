@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AlertSettings } from '@/domain/alerts';
-import { MAX_PER_HABIT, MAX_SCHEDULED, planScheduled } from '@/domain/native-schedule';
+import { MAX_PER_HABIT, MAX_SCHEDULED, nextUp, planScheduled } from '@/domain/native-schedule';
 import { normalizeTask } from '@/domain/task-model';
 import type { Reminder, Task } from '@/domain/types';
 
@@ -77,6 +77,13 @@ describe('planScheduled — repeating reminders', () => {
     expect(plan.every((p) => p.kind === 'habit' && p.reminderId === 'h1')).toBe(true);
   });
 
+  it('leaves a ping that is due right now to the running app, but keeps the chain going', () => {
+    const overdue = habit({ lastFiredAt: NOW - 3 * 3600_000 }); // due long ago
+    const plan = planScheduled([], [overdue], NOW, S);
+    expect(plan.every((p) => p.at > NOW + 5000)).toBe(true);
+    expect(plan.length).toBeGreaterThan(1);
+  });
+
   it('skips disabled reminders and caps each one', () => {
     expect(planScheduled([], [habit({ enabled: false })], NOW, S)).toEqual([]);
     expect(planScheduled([], [habit({ intervalMin: 5 })], NOW, S).length).toBeLessThanOrEqual(MAX_PER_HABIT);
@@ -87,5 +94,17 @@ describe('planScheduled — repeating reminders', () => {
     const plan = planScheduled([], many, NOW, S);
     expect(plan.length).toBeLessThanOrEqual(MAX_SCHEDULED);
     expect(plan.map((p) => p.at)).toEqual([...plan.map((p) => p.at)].sort((a, b) => a - b));
+  });
+});
+
+describe('nextUp', () => {
+  it('names the soonest thing across tasks and repeating reminders', () => {
+    const n = nextUp([task()], [habit()], NOW, S);
+    expect(n).toMatchObject({ kind: 'task', title: 'Pay rent', at: at(9, 30) });
+    const h = nextUp([], [habit({ title: 'Stretch', emoji: '🤸' })], NOW, S);
+    expect(h).toMatchObject({ kind: 'habit', title: 'Stretch', emoji: '🤸', at: at(10) });
+  });
+  it('is null when nothing will ring', () => {
+    expect(nextUp([], [], NOW, S)).toBeNull();
   });
 });

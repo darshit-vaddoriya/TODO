@@ -43,6 +43,23 @@ export function untilPhrase(ms: number): string {
   return m === 0 ? `in ${h}h` : `in ${h}h ${m}m`;
 }
 
+/**
+ * A live countdown: "04:32" under an hour, "1:04:32" under a day, "2d 3h" beyond.
+ * Rounds up so the display never reads 00:00 before the moment has arrived.
+ */
+export function formatCountdown(ms: number): string {
+  if (ms <= 0) return '00:00';
+  const total = Math.ceil(ms / 1000);
+  const d = Math.floor(total / 86400);
+  const h = Math.floor((total % 86400) / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const sec = total % 60;
+  const two = (n: number) => String(n).padStart(2, '0');
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}:${two(m)}:${two(sec)}`;
+  return `${two(m)}:${two(sec)}`;
+}
+
 /** A "HH:MM" clock label in 12-hour ("8:00 AM") or 24-hour ("08:00") style. Pure. */
 export function formatClockWith(time: ClockTime, time24: boolean): string {
   const [h, m] = time.split(':').map(Number);

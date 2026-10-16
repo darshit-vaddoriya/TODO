@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { clockToMinutes, everyPhrase, formatClockWith, formatDateWith, formatDays, formatInterval, friendlyDateWith, untilPhrase } from '@/domain/dates';
+import {
+  clockToMinutes,
+  everyPhrase,
+  formatClockWith,
+  formatDateWith,
+  formatDays,
+  formatInterval,
+  friendlyDateWith,
+  untilPhrase,
+  formatCountdown,
+} from '@/domain/dates';
 
 describe('formatInterval', () => {
   it('formats minutes and hours', () => {
@@ -69,5 +79,19 @@ describe('clock and date formatting', () => {
     expect(friendlyDateWith('2026-06-17', '2026-06-18', 'dmy')).toBe('Yesterday');
     expect(friendlyDateWith('2026-06-25', '2026-06-18', 'dmy')).toBe('25/06/2026');
     expect(friendlyDateWith('2026-03-09', '2026-03-07', 'ymd')).toBe('2026-03-09'); // across DST
+  });
+});
+
+describe('formatCountdown', () => {
+  it('shows mm:ss under an hour, rounding up so it never reads 00:00 early', () => {
+    expect(formatCountdown(272_000)).toBe('04:32');
+    expect(formatCountdown(59_100)).toBe('01:00');
+    expect(formatCountdown(1)).toBe('00:01');
+    expect(formatCountdown(0)).toBe('00:00');
+    expect(formatCountdown(-5000)).toBe('00:00');
+  });
+  it('adds hours, then days', () => {
+    expect(formatCountdown(3_723_000)).toBe('1:02:03');
+    expect(formatCountdown(2 * 86_400_000 + 3 * 3_600_000)).toBe('2d 3h');
   });
 });
