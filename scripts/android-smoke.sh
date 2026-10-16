@@ -35,6 +35,8 @@ for m in re.finditer(r'<node[^>]*?(?:text|content-desc)="([^"]*)"[^>]*?bounds="\
     text = m.group(1).strip().lower()
     if want == text or want in text:
         x1, y1, x2, y2 = map(int, m.groups()[1:])
+        if x2 <= x1 or y2 <= y1:
+            continue  # hidden or zero-size node
         hits.append((0 if want == text else 1, (x1 + x2) // 2, (y1 + y2) // 2))
 if hits:
     hits.sort(key=lambda h: h[0])  # an exact match beats a partial one; screen order breaks ties
