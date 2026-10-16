@@ -8,7 +8,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { everyPhrase, formatDays, localDate, untilPhrase } from '@/domain/dates';
 import { nextDueAt, pingsPerDay } from '@/domain/interval-schedule';
 import { dayProgress, dueBucket, tabTasks, sortTasks } from '@/domain/task-view';
-import type { Priority, Reminder, Task } from '@/domain/types';
+import type { Reminder, Task } from '@/domain/types';
 import { dueLabelFor, formatClock, formatTimeOfDay } from '@/data/display';
 import { getPrefs, isPaused, pauseFor, resume, setPrefs } from '@/data/prefs';
 import { markDone, snooze, toggle } from '@/data/reminders';
@@ -16,12 +16,11 @@ import { permission, requestPermission } from '@/services/notify';
 import { dismissInstallBanner, promptInstall, shouldShowInstallBanner } from '@/services/pwa';
 import { toast } from '@/services/toast';
 import { Checkbox, Empty, Header, Icon, Meter, Nudge, Page, ProgressRing, Section, Switch } from '@/ui/components';
+import { PRIORITY_COLOR } from '@/ui/shared/priority';
 import { useTaskComplete } from '@/ui/shared/useTaskComplete';
 import { MissedAlerts } from '@/ui/features/home/MissedAlerts';
 import { useReminders, useNow, useTasks } from '@/ui/hooks';
 import { go } from '@/ui/router';
-
-const PRIORITY_COLOR: Record<Priority, string> = { none: '', low: 'text-info', medium: 'text-haldi', high: 'text-accent' };
 
 function greeting(now: number, name: string): string {
   const h = new Date(now).getHours();

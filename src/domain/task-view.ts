@@ -217,3 +217,22 @@ export function isUrgent(task: Task, today: string): boolean {
   if (task.done) return false;
   return (task.dueDate !== null && task.dueDate < today) || (task.priority === 'high' && task.dueDate !== null && task.dueDate <= today);
 }
+
+// --- Filter bar helpers ---------------------------------------------------------------
+
+/** How many narrowing filters (category, priority, tag) are on — the badge on the filter button. Search and view are not counted. */
+export function activeFilterCount(filter: TaskFilter): number {
+  return (filter.category !== 'all' ? 1 : 0) + (filter.priority ? 1 : 0) + (filter.tag ? 1 : 0);
+}
+
+const PRIORITY_WORDS: Record<Priority, string> = { none: 'No priority', low: 'Low priority', medium: 'Medium priority', high: 'High priority' };
+
+/** The active filters as plain words, e.g. ["Work", "High priority", "#errands"] — shown as text, not chips. */
+export function filterSummary(filter: TaskFilter, categoryName: (id: string) => string | undefined): string[] {
+  const parts: string[] = [];
+  if (filter.category === 'none') parts.push('Inbox');
+  else if (filter.category !== 'all') parts.push(categoryName(filter.category) ?? 'Category');
+  if (filter.priority) parts.push(PRIORITY_WORDS[filter.priority]);
+  if (filter.tag) parts.push(`#${filter.tag}`);
+  return parts;
+}

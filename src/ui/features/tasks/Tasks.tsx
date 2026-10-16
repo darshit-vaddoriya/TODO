@@ -1,24 +1,23 @@
 /**
- * Tasks: Today · Upcoming · All · Overdue · Completed. A quick-add box that
- * understands plain language, search, sort and filters (category, tag,
- * priority), swipe to complete or delete (with Undo), drag to reorder in the
- * manual All view, and a completed-task history. Tap a task to edit it.
+ * The Tasks screen. The view (Today · Upcoming · All · Overdue · Completed) comes
+ * from the route; a search box and two icons — filter and sort — sit above the
+ * list and open sheets, so there are no tab or chip rows pushing the tasks down.
+ * Swipe to complete or delete (with Undo), drag to reorder in the manual All
+ * view, and a dated history under Completed. Tap a task to edit it.
  */
-import type { ComponentChildren } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { localDate } from '@/domain/dates';
-import { parseQuickAdd } from '@/domain/quick-parse';
 import { repeatLabel } from '@/domain/task-model';
 import {
+  activeFilterCount,
   allTags,
   buildView,
   completedHistory,
   dayProgress,
   EMPTY_FILTER,
+  filterSummary,
   groupByDate,
-  isUrgent,
   matchesFilter,
-  SORT_LABELS,
   sortTasks,
   tabCounts,
   tabTasks,
@@ -27,184 +26,18 @@ import {
   type TaskFilter,
   type TaskTab,
 } from '@/domain/task-view';
-import type { Priority, Category, Task } from '@/domain/types';
-import { formatClock, friendlyDate } from '@/data/display';
-import { getPrefs } from '@/data/prefs';
-import { clearDoneTasks, addTask, reorderTasks } from '@/data/tasks';
-import { Checkbox, Empty, Header, Icon, Meter, Page, ReorderList, Section, Segmented, SwipeRow } from '@/ui/components';
-import { completeWithUndo, deleteWithUndo, setDoneWithUndo } from '@/ui/shared/taskActions';
-import { useTaskComplete } from '@/ui/shared/useTaskComplete';
+import type { Category } from '@/domain/types';
+import { friendlyDate } from '@/data/display';
+import { clearDoneTasks, reorderTasks } from '@/data/tasks';
+import { Checkbox, Empty, Header, Icon, Meter, Page, ReorderList, Section } from '@/ui/components';
 import { useCategories, useTasks } from '@/ui/hooks';
 import { go } from '@/ui/router';
+import { setDoneWithUndo } from '@/ui/shared/taskActions';
+import { FilterSheet, SortSheet } from './FilterSheet';
+import { QuickAdd } from './QuickAdd';
+import { TaskList, TaskRow } from './TaskRow';
 
-const PRIORITY_COLOR: Record<Priority, string> = { none: '', low: 'text-info', medium: 'text-haldi', high: 'text-accent' };
-const PRIORITY_LABEL: Record<Priority, string> = { none: 'No priority', low: 'Low priority', medium: 'Medium priority', high: 'High priority' };
-const PRIORITY_CHIPS: { value: Priority | null; label: string }[] = [
-  { value: null, label: 'Any' },
-  { value: 'high', label: 'High' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'low', label: 'Low' },
-];
-const SORT_OPTS = (Object.keys(SORT_LABELS) as SortKey[]).map((value) => ({ value, label: SORT_LABELS[value] }));
-
-/** "Today, 5:30 PM" / "Tomorrow" / "06/20/2026, 09:00" for a due date and optional time. */
-function dueText(task: Task, today: string): string {
-  const day = friendlyDate(task.dueDate as string, today);
-  return task.dueTime ? `${day}, ${formatClock(task.dueTime)}` : day;
-}
-
-// --- One task row -----------------------------------------------------------------
-
-function TaskRow({ task, today, categories, handle }: { task: Task; today: string; categories: Category[]; handle?: ComponentChildren }) {
-  const { leaving, toggle } = useTaskComplete(task);
-  const overdue = !!task.dueDate && task.dueDate < today;
-  const urgent = isUrgent(task, today);
-  const subDone = task.subtasks.filter((s) => s.done).length;
-  const category = task.categoryId ? categories.find((p) => p.id === task.categoryId)?.name : undefined;
-  const repeat = repeatLabel(task.repeat);
-  const dueClass = overdue ? 'text-accent' : task.dueDate === today ? 'text-teal' : 'text-muted';
-
-  const body = (
-    <div class="relative flex items-center gap-3 bg-surface py-2 pl-4 pr-3">
-      {urgent && <span class="absolute inset-y-0 left-0 w-1 bg-accent" aria-hidden="true" />}
-      {handle}
-      <Checkbox checked={task.done || leaving} popping={leaving} label={`${task.done ? 'Uncheck' : 'Complete'} ${task.title}`} onChange={toggle} />
-      <button type="button" class="min-w-0 flex-1 py-1 text-left" onClick={() => go(`/task/${task.id}`)}>
-        <span class="flex items-center gap-1.5">
-          <span class={`truncate font-semibold ${task.done ? 'text-muted line-through' : ''}`}>{task.title}</span>
-          {task.priority !== 'none' && (
-            <>
-              <Icon name="flag" size={14} class={PRIORITY_COLOR[task.priority]} />
-              <span class="sr-only">{PRIORITY_LABEL[task.priority]}</span>
-            </>
-          )}
-        </span>
-        <span class="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[0.75rem] font-semibold leading-tight text-muted">
-          {task.dueDate && (
-            <span class={`flex items-center gap-1 ${dueClass}`}>
-              <Icon name="calendar" size={12} />
-              {overdue ? 'Overdue · ' : ''}
-              {dueText(task, today)}
-            </span>
-          )}
-          {task.reminders.length > 0 && (
-            <span class="flex items-center">
-              <Icon name="bell" size={12} />
-              <span class="sr-only">Has a reminder</span>
-            </span>
-          )}
-          {repeat && (
-            <span class="flex items-center gap-1 text-teal">
-              <Icon name="repeat" size={12} /> {repeat}
-            </span>
-          )}
-          {task.subtasks.length > 0 && (
-            <span class="flex items-center gap-1">
-              <Icon name="check" size={12} /> {subDone}/{task.subtasks.length}
-            </span>
-          )}
-          {category && (
-            <span class="flex items-center gap-1">
-              <Icon name="tag" size={12} /> {category}
-            </span>
-          )}
-          {task.tags.map((t) => (
-            <span key={t}>#{t}</span>
-          ))}
-        </span>
-      </button>
-    </div>
-  );
-
-  return (
-    <div class="task-row overflow-hidden rounded-[16px] bg-surface shadow-[var(--lift)]" data-leaving={leaving}>
-      {handle || task.done ? (
-        body
-      ) : (
-        <SwipeRow onSwipeRight={() => void completeWithUndo(task)} onSwipeLeft={() => deleteWithUndo(task)}>
-          {body}
-        </SwipeRow>
-      )}
-    </div>
-  );
-}
-
-function TaskList({ tasks, today, categories }: { tasks: Task[]; today: string; categories: Category[] }) {
-  return (
-    <div class="space-y-2.5">
-      {tasks.map((t) => (
-        <TaskRow key={t.id} task={t} today={today} categories={categories} />
-      ))}
-    </div>
-  );
-}
-
-// --- Quick add --------------------------------------------------------------------
-
-/** A line of plain language → a task; shows what it understood as you type. */
-function QuickAdd({ tab, categoryId }: { tab: TaskTab; categoryId: string | null }) {
-  const [text, setText] = useState('');
-  const today = localDate();
-  const parsed = useMemo(() => parseQuickAdd(text, today), [text, today]);
-  const dueDate = parsed.dueDate ?? (tab === 'today' ? today : null);
-  const priority = parsed.priority !== 'none' ? parsed.priority : getPrefs().defaultPriority;
-  const repeat = repeatLabel(parsed.repeat);
-
-  const add = async () => {
-    if (!parsed.title) return;
-    await addTask({
-      title: parsed.title,
-      dueDate,
-      dueTime: parsed.dueTime,
-      priority,
-      tags: parsed.tags,
-      repeat: parsed.repeat,
-      categoryId: categoryId,
-      // A time you typed is a time you want to be told about.
-      reminderOffsets: parsed.dueTime ? [0] : [],
-    });
-    setText('');
-  };
-
-  const chips = [
-    dueDate && `${friendlyDate(dueDate, today)}${parsed.dueTime ? `, ${formatClock(parsed.dueTime)}` : ''}`,
-    repeat,
-    parsed.priority !== 'none' && `${parsed.priority} priority`,
-    ...parsed.tags.map((t) => `#${t}`),
-  ].filter(Boolean) as string[];
-
-  return (
-    <div>
-      <div class="flex items-center gap-2">
-        <input
-          id="quick-add"
-          class="field flex-1 !bg-surface shadow-[var(--lift)]"
-          placeholder="Add a task… e.g. Call mom 6pm"
-          aria-label="Quick add task"
-          value={text}
-          maxLength={160}
-          onInput={(e) => setText(e.currentTarget.value)}
-          onKeyDown={(e) => e.key === 'Enter' && void add()}
-        />
-        <button type="button" class="btn btn-primary !min-h-[52px] shrink-0 px-4" onClick={() => void add()} disabled={!parsed.title} aria-label="Add task">
-          <Icon name="plus" size={22} />
-        </button>
-      </div>
-      {text.trim() && chips.length > 0 && (
-        <p class="mt-2 flex flex-wrap gap-1.5 px-1" aria-live="polite">
-          {chips.map((c) => (
-            <span key={c} class="rounded-full bg-surface px-2.5 py-1 text-[0.75rem] font-semibold text-teal shadow-[var(--lift)]">
-              {c}
-            </span>
-          ))}
-        </p>
-      )}
-    </div>
-  );
-}
-
-// --- Dates for headings ---------------------------------------------------------------
-
+/** "Friday · Today", "Monday · 10/19/2026" — a day heading. */
 function dayHeading(date: string, today: string): string {
   const [y, m, d] = date.split('-').map(Number);
   const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date(y, m - 1, d));
@@ -215,10 +48,30 @@ function dayHeading(date: string, today: string): string {
 /** `#/tasks/all?cat=<id|none>` → the category filter it names (undefined if it names none that exists). */
 function categoryFromLink(cat: string | undefined, categories: Category[]): TaskFilter['category'] | undefined {
   if (cat === 'none') return 'none';
-  return cat && categories.some((p) => p.id === cat) ? cat : undefined;
+  return cat && categories.some((c) => c.id === cat) ? cat : undefined;
 }
 
-// --- The screen ---------------------------------------------------------------------
+/** A square icon button for the toolbar, with an optional count badge or a "changed" dot. */
+function ToolbarButton({ icon, label, badge, dot, onClick }: { icon: string; label: string; badge?: number; dot?: boolean; onClick: () => void }) {
+  const active = !!badge;
+  return (
+    <button
+      type="button"
+      aria-label={badge ? `${label}, ${badge} active` : label}
+      aria-haspopup="dialog"
+      class={`relative grid size-11 shrink-0 place-items-center rounded-2xl shadow-[var(--lift)] ${active ? 'bg-teal text-on-teal' : 'bg-surface text-ink'}`}
+      onClick={onClick}
+    >
+      <Icon name={icon} size={20} />
+      {badge ? (
+        <span class="tnum absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[0.6875rem] font-extrabold leading-none text-on-accent">
+          {badge}
+        </span>
+      ) : null}
+      {dot && !badge && <span class="absolute right-1.5 top-1.5 size-2.5 rounded-full bg-accent" aria-hidden="true" />}
+    </button>
+  );
+}
 
 export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
   const tasks = useTasks();
@@ -226,21 +79,24 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
   const today = localDate();
   const [sortOverride, setSortOverride] = useState<SortKey | null>(null);
   const [filter, setFilter] = useState<TaskFilter>({ ...EMPTY_FILTER, category: categoryFromLink(cat, categories) ?? 'all' });
-  const [showFilters, setShowFilters] = useState(false);
+  const [sheet, setSheet] = useState<'filter' | 'sort' | null>(null);
 
   // Follow a category link (#/tasks/all?cat=…) when it changes while the screen is open.
   useEffect(() => {
     setFilter((f) => ({ ...f, category: categoryFromLink(cat, categories) ?? f.category }));
   }, [cat]);
 
-  const sort: SortKey = sortOverride ?? (view === 'all' ? 'manual' : 'due');
+  const defaultSort: SortKey = view === 'all' ? 'manual' : 'due';
+  const sort: SortKey = sortOverride ?? defaultSort;
   const tags = useMemo(() => allTags(tasks), [tasks]);
   const counts = useMemo(() => tabCounts(tasks, today), [tasks, today]);
   const progress = dayProgress(tasks, today);
   const currentCategory = filter.category !== 'all' && filter.category !== 'none' ? filter.category : null;
-  const filtering = filter.search.trim() !== '' || filter.tag !== null || filter.priority !== null || filter.category !== 'all';
+  const filterCount = activeFilterCount(filter);
+  const filtering = filter.search.trim() !== '' || filterCount > 0;
+  const summary = filterSummary(filter, (id) => categories.find((c) => c.id === id)?.name);
 
-  // Open tasks for this tab, filtered then sorted.
+  // Open tasks for this view, filtered then sorted.
   const open = useMemo(
     () =>
       sortTasks(
@@ -252,6 +108,13 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
   const history = useMemo(() => (view === 'done' ? completedHistory(tasks.filter((t) => matchesFilter(t, filter))) : []), [tasks, view, filter]);
   const allView = useMemo(() => (view === 'all' ? buildView(tasks, filter, sort, today) : null), [tasks, view, filter, sort, today]);
   const reorderable = view === 'all' && sort === 'manual' && !filtering && open.length > 1;
+  const shown = view === 'done' ? history.length : open.length;
+
+  const openCategoryCounts = useMemo(() => {
+    const byId = new Map<string | null, number>();
+    for (const t of tasks) if (!t.done) byId.set(t.categoryId, (byId.get(t.categoryId) ?? 0) + 1);
+    return byId;
+  }, [tasks]);
 
   // Keyboard shortcuts (desktop): "n" to add, "/" to search.
   useEffect(() => {
@@ -273,6 +136,11 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
     return () => removeEventListener('keydown', onKey);
   }, []);
 
+  const clearFilters = () => setFilter((f) => ({ ...EMPTY_FILTER, search: f.search }));
+  // Switching view replaces the history entry: it's a filter, not a destination.
+  const changeView = (next: TaskTab) => location.replace(`#/tasks/${next}`);
+  const viewLabel = TASK_TABS.find((t) => t.id === view)?.label ?? 'Tasks';
+
   const focusAdd = () => document.getElementById('quick-add')?.focus();
   const emptyCopy: Record<TaskTab, { title: string; body: string; icon: string; cta?: boolean }> = {
     today: { title: 'Nothing due today', body: 'A clear day. Add something, or enjoy it.', icon: 'check', cta: true },
@@ -281,7 +149,7 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
     overdue: { title: 'Nothing overdue', body: 'You’re all caught up. 🎉', icon: 'check' },
     done: { title: 'Nothing completed yet', body: 'Finished tasks collect here as a history.', icon: 'check' },
   };
-  const empty = filtering ? { title: 'No matches', body: 'Try a different search or clear the filters.', icon: 'search', cta: false } : emptyCopy[view];
+  const empty = filtering ? { title: 'No matches', body: 'Try a different search, or reset the filters.', icon: 'search', cta: false } : emptyCopy[view];
   const emptyState = (
     <Empty title={empty.title} body={empty.body} icon={empty.icon}>
       {empty.cta && (
@@ -291,7 +159,7 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
       )}
       {filtering && (
         <button type="button" class="btn btn-quiet" onClick={() => setFilter(EMPTY_FILTER)}>
-          Clear filters
+          Reset filters
         </button>
       )}
     </Empty>
@@ -378,7 +246,7 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
     <>
       <Header
         title="Tasks"
-        sub={view !== 'today' && progress.total > 0 ? `${progress.done} of ${progress.total} done today` : undefined}
+        sub={`${viewLabel} · ${shown} ${view === 'done' ? (shown === 1 ? 'completion' : 'completions') : shown === 1 ? 'task' : 'tasks'}`}
         actions={
           <a href="#/settings" class="grid size-11 place-items-center rounded-full active:bg-field" aria-label="Settings">
             <Icon name="settings" size={22} />
@@ -390,43 +258,6 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
           <QuickAdd tab={view} categoryId={currentCategory} />
         </div>
 
-        {/* Views: the number on each tab is how many tasks are in it. */}
-        <div role="tablist" aria-label="Task views" class="mb-3 flex gap-0.5 rounded-2xl bg-surface p-1 shadow-[var(--lift)]">
-          {TASK_TABS.map((t) => {
-            const active = view === t.id;
-            const count = t.id === 'done' ? progress.done : counts[t.id];
-            const alarming = t.id === 'overdue' && count > 0;
-            return (
-              <a
-                key={t.id}
-                href={`#/tasks/${t.id}`}
-                role="tab"
-                aria-selected={active}
-                aria-label={`${t.id === 'done' ? 'Completed' : t.label}, ${count}`}
-                class={`flex min-h-[3.25rem] min-w-0 flex-1 flex-col items-center justify-center rounded-xl px-0.5 transition-colors ${active ? 'bg-teal text-on-teal' : 'text-muted'}`}
-              >
-                <span class={`tnum text-[1.125rem] font-extrabold leading-tight ${alarming && !active ? 'text-accent' : ''}`}>{count}</span>
-                <span class="max-w-full truncate text-[0.6875rem] font-bold leading-tight">{t.id === 'done' ? 'Done' : t.label}</span>
-              </a>
-            );
-          })}
-        </div>
-
-        {view === 'today' && (progress.total > 0 || counts.overdue > 0) && (
-          <div class="mb-3 px-1">
-            <div class="mb-1.5 flex items-center justify-between text-[0.8125rem] font-semibold">
-              <span class="text-muted">{progress.total > 0 ? `${progress.done} of ${progress.total} done today` : 'Nothing planned for today'}</span>
-              {counts.overdue > 0 && (
-                <a href="#/tasks/overdue" class="flex items-center gap-0.5 font-bold text-accent">
-                  {counts.overdue} overdue <Icon name="back" size={14} class="rotate-180" />
-                </a>
-              )}
-            </div>
-            {progress.total > 0 && <Meter ratio={progress.done / progress.total} label={`${progress.done} of ${progress.total} tasks done today`} />}
-          </div>
-        )}
-
-        {/* Search + filters */}
         <div class="mb-3 flex items-center gap-2">
           <label class="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-2xl bg-surface px-3 shadow-[var(--lift)]">
             <Icon name="search" size={18} class="text-muted" />
@@ -449,101 +280,31 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
               </button>
             )}
           </label>
-          <button
-            type="button"
-            class={`relative grid size-11 shrink-0 place-items-center rounded-2xl shadow-[var(--lift)] ${showFilters ? 'bg-teal text-on-teal' : 'bg-surface text-muted'}`}
-            aria-label="Filters and sort"
-            aria-expanded={showFilters}
-            onClick={() => setShowFilters((v) => !v)}
-          >
-            <Icon name="settings" size={18} />
-            {filtering && !showFilters && <span class="absolute right-1.5 top-1.5 size-2.5 rounded-full bg-accent" aria-hidden="true" />}
-          </button>
+          <ToolbarButton icon="filter" label="Filters" badge={filterCount} onClick={() => setSheet('filter')} />
+          <ToolbarButton icon="sort" label="Sort" dot={sort !== defaultSort} onClick={() => setSheet('sort')} />
         </div>
 
-        {(categories.length > 0 || filter.category !== 'all') && (
-          <div class="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-0.5" role="group" aria-label="Category">
-            <button
-              type="button"
-              class="chip !min-h-9 !px-3.5"
-              aria-pressed={filter.category === 'all'}
-              onClick={() => setFilter((f) => ({ ...f, category: 'all' }))}
-            >
-              All
+        {summary.length > 0 && (
+          <p class="mb-3 flex items-center gap-2 px-1 text-[0.8125rem] font-semibold text-muted">
+            <Icon name="filter" size={14} />
+            <span class="min-w-0 flex-1 truncate">{summary.join(' · ')}</span>
+            <button type="button" class="shrink-0 font-bold text-teal" onClick={clearFilters}>
+              Clear
             </button>
-            <button
-              type="button"
-              class="chip !min-h-9 !px-3.5"
-              aria-pressed={filter.category === 'none'}
-              onClick={() => setFilter((f) => ({ ...f, category: 'none' }))}
-            >
-              Inbox
-            </button>
-            {categories.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                class="chip !min-h-9 !px-3.5"
-                aria-pressed={filter.category === p.id}
-                onClick={() => setFilter((f) => ({ ...f, category: p.id }))}
-              >
-                {p.name}
-              </button>
-            ))}
-            <a href="#/categories" class="chip !min-h-9 !px-3.5 text-teal">
-              Manage
-            </a>
-          </div>
+          </p>
         )}
 
-        {showFilters && (
-          <div class="card mb-3 space-y-3">
-            <div>
-              <span class="section-label mb-1.5 block">Sort by</span>
-              <Segmented label="Sort tasks" options={SORT_OPTS} value={sort} onChange={(v) => setSortOverride(v)} />
+        {view === 'today' && (progress.total > 0 || counts.overdue > 0) && (
+          <div class="mb-4 px-1">
+            <div class="mb-1.5 flex items-center justify-between text-[0.8125rem] font-semibold">
+              <span class="text-muted">{progress.total > 0 ? `${progress.done} of ${progress.total} done today` : 'Nothing planned for today'}</span>
+              {counts.overdue > 0 && (
+                <button type="button" class="flex items-center gap-0.5 font-bold text-accent" onClick={() => changeView('overdue')}>
+                  {counts.overdue} overdue <Icon name="back" size={14} class="rotate-180" />
+                </button>
+              )}
             </div>
-            <div>
-              <span class="section-label mb-1.5 block">Priority</span>
-              <div class="flex flex-wrap gap-2" role="group" aria-label="Priority filter">
-                {PRIORITY_CHIPS.map((p) => (
-                  <button
-                    key={p.label}
-                    type="button"
-                    class="chip !min-h-9"
-                    aria-pressed={filter.priority === p.value}
-                    onClick={() => setFilter((f) => ({ ...f, priority: p.value }))}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {tags.length > 0 && (
-              <div>
-                <span class="section-label mb-1.5 block">Tag</span>
-                <div class="flex flex-wrap gap-2" role="group" aria-label="Tag filter">
-                  <button type="button" class="chip !min-h-9" aria-pressed={filter.tag === null} onClick={() => setFilter((f) => ({ ...f, tag: null }))}>
-                    All
-                  </button>
-                  {tags.map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      class="chip !min-h-9"
-                      aria-pressed={filter.tag === t}
-                      onClick={() => setFilter((f) => ({ ...f, tag: f.tag === t ? null : t }))}
-                    >
-                      #{t}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {filtering && (
-              <button type="button" class="text-[0.875rem] font-bold text-accent" onClick={() => setFilter(EMPTY_FILTER)}>
-                Clear all filters
-              </button>
-            )}
+            {progress.total > 0 && <Meter ratio={progress.done / progress.total} label={`${progress.done} of ${progress.total} tasks done today`} />}
           </div>
         )}
 
@@ -557,6 +318,34 @@ export function Tasks({ view, cat }: { view: TaskTab; cat?: string }) {
 
         {taskContent()}
       </Page>
+
+      <FilterSheet
+        open={sheet === 'filter'}
+        onClose={() => setSheet(null)}
+        view={view}
+        onViewChange={changeView}
+        counts={counts}
+        completedToday={progress.done}
+        filter={filter}
+        onFilterChange={(patch) => setFilter((f) => ({ ...f, ...patch }))}
+        onReset={clearFilters}
+        categories={categories}
+        categoryCount={(id) => openCategoryCounts.get(id) ?? 0}
+        tags={tags}
+        resultCount={shown}
+        onManageCategories={() => {
+          setSheet(null);
+          go('/categories');
+        }}
+      />
+      <SortSheet
+        open={sheet === 'sort'}
+        onClose={() => setSheet(null)}
+        sort={sort}
+        isDefault={sort === defaultSort}
+        onSelect={setSortOverride}
+        onUseDefault={() => setSortOverride(null)}
+      />
     </>
   );
 }

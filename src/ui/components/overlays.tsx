@@ -1,3 +1,47 @@
+/**
+ * A bottom sheet (native <dialog>: focus trap, Escape and a dimmed backdrop for
+ * free). Slides up on a phone; a centred dialog on desktop. Tapping the backdrop
+ * closes it. `footer` stays pinned below the scrolling content.
+ */
+export function Sheet({
+  open,
+  onClose,
+  title,
+  children,
+  footer,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: ComponentChildren;
+  footer?: ComponentChildren;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    if (open && !d.open) d.showModal();
+    if (!open && d.open) d.close();
+  }, [open]);
+  return (
+    <dialog ref={ref} class="sheet" aria-label={title} onClose={onClose} onClick={(e) => e.target === ref.current && onClose()}>
+      {open && (
+        <div class="flex max-h-[88dvh] flex-col">
+          <div class="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-control/60 lg:hidden" aria-hidden="true" />
+          <div class="flex shrink-0 items-center gap-2 px-5 pb-2 pt-3">
+            <h2 class="display min-w-0 flex-1 text-[1.25rem]">{title}</h2>
+            <button type="button" class="grid size-10 place-items-center rounded-full text-muted active:bg-field" aria-label="Close" onClick={onClose}>
+              <Icon name="close" size={20} />
+            </button>
+          </div>
+          <div class="min-h-0 flex-1 overflow-y-auto px-5 pb-4">{children}</div>
+          {footer && <div class="shrink-0 border-t border-rule px-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3">{footer}</div>}
+        </div>
+      )}
+    </dialog>
+  );
+}
+
 /** Overlays: modal dialog and the toast stack. */
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';

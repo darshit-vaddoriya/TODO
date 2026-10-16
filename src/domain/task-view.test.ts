@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeTask } from '@/domain/task-model';
 import {
+  activeFilterCount,
   allTags,
   buildView,
   completedHistory,
   dayProgress,
   dueBucket,
   EMPTY_FILTER,
+  filterSummary,
   groupByDate,
   isTaskTab,
   isUrgent,
@@ -178,5 +180,22 @@ describe('tab views', () => {
     expect(isUrgent(task({ title: 'x', dueDate: TODAY, priority: 'low' }), TODAY)).toBe(false);
     expect(isUrgent(task({ title: 'x', dueDate: '2026-06-20', priority: 'high' }), TODAY)).toBe(false);
     expect(isUrgent(task({ title: 'x', dueDate: '2026-06-10', done: true }), TODAY)).toBe(false);
+  });
+});
+
+describe('filter bar helpers', () => {
+  it('counts only category, priority and tag filters', () => {
+    expect(activeFilterCount(EMPTY_FILTER)).toBe(0);
+    expect(activeFilterCount({ ...EMPTY_FILTER, search: 'milk' })).toBe(0); // search is its own box
+    expect(activeFilterCount({ ...EMPTY_FILTER, category: 'none' })).toBe(1);
+    expect(activeFilterCount({ category: 'work', priority: 'high', tag: 'x', search: '' })).toBe(3);
+  });
+
+  it('describes the active filters in plain words', () => {
+    const name = (id: string) => (id === 'work' ? 'Work' : undefined);
+    expect(filterSummary(EMPTY_FILTER, name)).toEqual([]);
+    expect(filterSummary({ ...EMPTY_FILTER, category: 'none' }, name)).toEqual(['Inbox']);
+    expect(filterSummary({ category: 'work', priority: 'high', tag: 'errands', search: '' }, name)).toEqual(['Work', 'High priority', '#errands']);
+    expect(filterSummary({ ...EMPTY_FILTER, category: 'gone' }, name)).toEqual(['Category']); // a deleted category doesn't crash
   });
 });

@@ -315,3 +315,32 @@
   letter-spacing: -0.02em;
   font-size: 1.25rem;
 }
+
+/* Bottom sheet (see Sheet): rises from the bottom on a phone, centred dialog on desktop. */
+@keyframes sheet-up {
+  from { transform: translateY(24px); opacity: 0.4; }
+  to { transform: translateY(0); opacity: 1; }
+}
+dialog.sheet {
+  width: 100%;
+  max-width: 34rem;
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  border-radius: 28px 28px 0 0;
+  background: var(--surface);
+  color: var(--ink);
+}
+dialog.sheet::backdrop {
+  background: rgb(0 0 0 / 0.5);
+  backdrop-filter: blur(2px);
+}
+dialog.sheet[open] {
+  animation: sheet-up 0.22s ease-out;
+}
+@media (min-width: 1024px) {
+  dialog.sheet {
+    margin: auto;
+    border-radius: 24px;
+  }
+}
