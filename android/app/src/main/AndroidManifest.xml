@@ -32,6 +32,15 @@
 
         </activity>
 
+        <!-- Reminders: rings the next stored alert, and re-arms after a restart or update. -->
+        <receiver android:name=".AlarmReceiver" android:exported="false" />
+        <receiver android:name=".BootReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <receiver
             android:name=".YaadWidgetProvider"
             android:exported="true"
@@ -58,9 +67,5 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Reminders must ring at the exact minute, also while the app is closed.
-         USE_EXACT_ALARM is granted automatically on Android 13+; on 12 the user can allow
-         SCHEDULE_EXACT_ALARM under "Alarms & reminders" (Settings shows a prompt for it). -->
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 </manifest>

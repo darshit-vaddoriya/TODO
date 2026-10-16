@@ -17,6 +17,23 @@ interface YaadNativePlugin {
   openNotificationSettings(): Promise<void>;
   openBatterySettings(): Promise<void>;
   batteryStatus(): Promise<{ unrestricted: boolean }>;
+  /** Replace the alerts the phone will ring (even with the app closed) and arm the next alarm. */
+  schedulePlan(plan: { items: PlannedAlert[] }): Promise<{ count: number; nextAt: number }>;
+  showNow(item: Omit<PlannedAlert, 'at'>): Promise<void>;
+  scheduleTest(options: { seconds: number }): Promise<{ count: number; nextAt: number }>;
+  alarmStatus(): Promise<{ count: number; nextAt: number }>;
+}
+
+export interface PlannedAlert {
+  id: number;
+  /** When it rings, epoch ms. */
+  at: number;
+  title: string;
+  body: string;
+  taskId: string | null;
+  /** Show Snooze / Done buttons. */
+  actions: boolean;
+  snoozeLabel: string;
 }
 
 export const Native = registerPlugin<YaadNativePlugin>('YaadWidget');

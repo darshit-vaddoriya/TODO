@@ -48,5 +48,7 @@ is where legacy fields migrate (`projectId` → `categoryId`). Backups are versi
 The same web build runs in a WebView. Native pieces live in `android/` (a widget
 provider and a `YaadWidget` plugin) and talk to the app through two services:
 `services/widget.ts` sends a summary computed by `domain/widget.ts`, and
-`services/native-notify.ts` schedules alerts planned by `domain/native-schedule.ts`
-with `@capacitor/local-notifications`. Both are no-ops in a browser.
+`services/native-notify.ts` sends the alerts planned by `domain/native-schedule.ts` to native
+code, which stores them and rings them with an alarm-clock alarm (`AlarmStore`,
+`AlarmScheduler`, `AlarmReceiver`, `NotifyHelper`); `@capacitor/local-notifications` is only
+used for the permission. Both are no-ops in a browser.

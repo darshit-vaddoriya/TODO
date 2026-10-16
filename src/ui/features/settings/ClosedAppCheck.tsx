@@ -8,7 +8,6 @@ import {
   nativeRequestPermission,
   nativeStatus,
   openBatterySettings,
-  openExactAlarmSettings,
   openNotificationSettings,
   scheduleTest,
   type NativeStatus,
@@ -48,7 +47,7 @@ export function ClosedAppCheck() {
 
   if (!s) return null;
   const refresh = () => void nativeStatus().then(setS);
-  const allGood = s.permission === 'granted' && s.exact && s.batteryUnrestricted;
+  const allGood = s.permission === 'granted' && s.batteryUnrestricted;
 
   const test = async (seconds: number) => {
     const error = await scheduleTest(seconds);
@@ -60,7 +59,9 @@ export function ClosedAppCheck() {
   return (
     <div class="card mt-2.5">
       <h3 class="font-extrabold tracking-[-0.01em]">Ringing while Yaad is closed</h3>
-      <p class="text-[0.8125rem] leading-snug text-muted">{allGood ? 'Everything needed is on.' : 'Fix the red items so reminders arrive on time.'}</p>
+      <p class="text-[0.8125rem] leading-snug text-muted">
+        {allGood ? 'Everything needed is on. Your next reminder also shows as the phone’s “next alarm”.' : 'Fix the red items so reminders arrive on time.'}
+      </p>
       <div class="mt-1 divide-y divide-rule">
         <Row
           ok={s.permission === 'granted'}
@@ -73,12 +74,6 @@ export function ClosedAppCheck() {
                 ? { label: 'Open settings', run: () => void openNotificationSettings() }
                 : { label: 'Allow', run: () => void nativeRequestPermission().then(refresh) }
           }
-        />
-        <Row
-          ok={s.exact}
-          title="Exact alarms"
-          detail={s.exact ? 'On — rings at the exact minute' : 'Off — Android may delay reminders by minutes'}
-          action={s.exact ? undefined : { label: 'Allow', run: () => void openExactAlarmSettings() }}
         />
         <Row
           ok={s.batteryUnrestricted}
