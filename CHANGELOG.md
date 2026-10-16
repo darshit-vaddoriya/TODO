@@ -5,6 +5,25 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
+## [2.4.0] — 2026-10-16
+
+### Changed
+- **Android reminders now use the alarm-clock alarm** instead of the notification
+  plugin's scheduler. Android holds ordinary alarms back for minutes while the
+  phone is idle (Doze) or in battery saver, which is why reminders arrived late
+  with the app closed; the alarm-clock kind is exempt, needs no special permission,
+  and is re-armed after a restart or update. A native receiver posts the
+  notification (with Snooze / Done and tap-to-open), so it works with Yaad closed.
+- The next reminder therefore appears as the phone's "next alarm" in the status bar.
+- Settings check: the "Exact alarms" row is gone (no longer relevant); "Show now" and
+  "Ring in 1 min" now exercise the same native path real reminders use.
+- A plan update that arrives while another is being sent is no longer dropped.
+
+### Notes
+- Alerts that were due while the app was closed and more than 15 minutes ago are not
+  rung late; they show under "Missed" in the app. An alert that already rang while
+  closed can also appear there when you next open the app.
+
 ## [2.3.2] — 2026-10-16
 
 ### Added
