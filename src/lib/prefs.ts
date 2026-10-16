@@ -1,5 +1,10 @@
 /** Small non-record preferences kept in localStorage. No reminder data here. */
+import type { Priority } from './types';
+
 export type Theme = 'system' | 'light' | 'dark';
+export type DateFormat = 'mdy' | 'dmy' | 'ymd';
+export type Density = 'comfortable' | 'compact';
+export const SNOOZE_CHOICES = [5, 10, 15, 30, 60] as const;
 
 export interface Prefs {
   theme: Theme;
@@ -12,6 +17,31 @@ export interface Prefs {
   sound: boolean;
   /** Do Not Disturb: epoch ms until which ALL reminders are muted. 0 = not paused. */
   pausedUntil: number;
+  /** How dates are written: 12/31/2026, 31/12/2026 or 2026-12-31. */
+  dateFormat: DateFormat;
+  /** 24-hour clock instead of 12-hour AM/PM. */
+  time24: boolean;
+  /** First day of the week in the calendar: 0 = Sunday, 1 = Monday. */
+  weekStart: 0 | 1;
+  /** Priority a new task starts with. */
+  defaultPriority: Priority;
+  /** "HH:MM" a reminder uses when its task has a date but no time. */
+  defaultReminderTime: string;
+  /** Minutes a task alert is snoozed for. */
+  snoozeMin: number;
+  /** Hold task alerts (not drop them) between these times. */
+  quietEnabled: boolean;
+  quietStart: string;
+  quietEnd: string;
+  /** A once-a-day "here's your day" notification at summaryTime. */
+  dailySummary: boolean;
+  summaryTime: string;
+  /** The local date the summary last went out, so it sends once a day. */
+  summaryDate: string;
+  /** A once-a-day nudge for tasks whose due date has passed. */
+  overdueReminders: boolean;
+  /** Tighter spacing for a denser list. */
+  density: Density;
 }
 
 const KEY = 'yaad:prefs';
@@ -22,6 +52,20 @@ const DEFAULTS: Prefs = {
   installPromptSeen: false,
   sound: true,
   pausedUntil: 0,
+  dateFormat: 'mdy',
+  time24: false,
+  weekStart: 1,
+  defaultPriority: 'none',
+  defaultReminderTime: '09:00',
+  snoozeMin: 10,
+  quietEnabled: false,
+  quietStart: '22:00',
+  quietEnd: '07:00',
+  dailySummary: false,
+  summaryTime: '08:00',
+  summaryDate: '',
+  overdueReminders: true,
+  density: 'comfortable',
 };
 
 let cache: Prefs | null = null;
@@ -81,4 +125,9 @@ export function applyTheme(theme: Theme): void {
   else root.dataset.theme = theme;
   const paper = getComputedStyle(root).getPropertyValue('--paper').trim();
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', paper);
+}
+
+/** Apply the layout density to <html>; CSS reads `data-density`. */
+export function applyDensity(density: Density): void {
+  document.documentElement.dataset.density = density;
 }

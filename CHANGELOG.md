@@ -5,9 +5,50 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
-## [Unreleased]
+## [1.4.0] — 2026-10-15
+
+A full personal todo-and-reminder app: everything stays on the device, works
+offline, and uses the best notification support the browser offers — without
+promising what the web can't do.
+
+### Added
+- **Task editor** (Add / Edit): title, description, date **and time**, priority,
+  category, tags, **repeat** (daily, weekly on chosen days, monthly, custom
+  every N days / weeks / months), **several reminders per task** (at time, 5 /
+  10 / 30 min, 1 hour, 1 day before, or custom), and subtasks.
+- **Task views**: Today, Upcoming, All, Overdue and Completed, with counts; the
+  Completed view is a dated **history** (repeating tasks show once per day done).
+- **Calendar**: a month grid (week starts Monday or Sunday), repeating tasks
+  projected forward, and a day panel to complete or add tasks.
+- **Categories** screen (formerly "lists"): counts, rename, delete (tasks go back
+  to the Inbox).
+- **Recurring tasks advance on completion** to their next occurrence, reset
+  their subtasks and reminders, and are logged in the history.
+- **Notifications that don't lie.** One scheduler (serialized, exclusive across
+  tabs) fires each reminder **once**; recalculates when a task is edited or
+  completed; never alerts for completed tasks; **snooze** (5 / 10 / 15 / 30 /
+  60 min) from the in-app alert or the notification button; and shows alerts
+  that came due while the app was closed as **missed reminders** on reopening
+  instead of flooding late notifications. Quiet hours hold alerts overnight.
+  In-app alerts always show, even with notifications blocked, and the app says
+  clearly when they are blocked or unavailable.
+- **Daily summary** and **overdue** reminders (each optional).
+- **Settings**: theme, layout (comfortable / compact), date format, 12 / 24-hour
+  clock, week start, default priority, default reminder time, snooze length,
+  quiet hours, daily summary, overdue reminders, notification status + test,
+  install status. A separate **Reminder settings** screen holds the
+  notification options and the honest limits of closed-app notifications.
+- **Floating Add Task button**, and a **left navigation rail** on desktop.
+- Quick-add now understands times and repeats: `Gym every monday 6:30am !high #health`.
+- Best-effort **closed-app catch-up** (installed Chrome / Android only): the
+  service worker can nudge about task reminders that came due while closed.
 
 ### Changed
+- Reminders are explicit per task. The old automatic once-a-day "due today" ping
+  is gone; use a reminder, or the overdue / daily-summary options.
+- Stored tasks and backups migrate automatically (the old `daily` flag and
+  `everyNDays` rule become the new repeat rules). Backup files are version 5;
+  older files still import.
 - **Home is now a "today" dashboard.** Instead of only listing reminders, the
   first screen opens with a greeting and date, at-a-glance counts (due today,
   overdue, done today, reminders on), the tasks that need attention today
@@ -15,6 +56,11 @@ in the app's Settings screen and written into backup files.
   reminders with their next ping. Tasks and reminders finally share one home.
 - **Personal greeting.** Set your name in Settings → You and the Home greeting
   becomes “Good morning, <name>”.
+
+### Fixed
+- A reminder whose moment had already passed when it was saved (for example
+  "1 day before" on a task due tomorrow evening) no longer appears instantly as
+  a missed reminder.
 
 ## [1.3.0] — 2026-10-13
 

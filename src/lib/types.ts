@@ -54,7 +54,18 @@ export type RepeatRule =
   | { kind: 'none' }
   | { kind: 'daily' }
   | { kind: 'weekly'; days: Weekday[] }
-  | { kind: 'everyNDays'; n: number };
+  /** Same day of the month (clamped to the month's length, e.g. the 31st → Feb 28). */
+  | { kind: 'monthly'; day: number }
+  /** Every N days / weeks / months. */
+  | { kind: 'custom'; every: number; unit: RepeatUnit };
+
+export type RepeatUnit = 'days' | 'weeks' | 'months';
+
+/** One reminder on a task: fires `offsetMin` minutes before the due moment (0 = at the time). */
+export interface TaskReminder {
+  id: string;
+  offsetMin: number;
+}
 
 /** A single checklist item nested under a task. */
 export interface Subtask {
@@ -76,8 +87,18 @@ export interface Task {
   completedAt: number | null;
   /** Due date as "YYYY-MM-DD", or null for no due date. */
   dueDate: string | null;
-  /** The local date we last fired a "due" notification for, so it pings at most once a day. */
+  /** Due time as "HH:MM" local, or null (reminders then use the default reminder time). */
+  dueTime: string | null;
+  /** The local date we last sent an overdue nudge for, so it nags at most once a day. */
   dueNotifiedDate: string | null;
+  /** Reminders for the current occurrence. Several are allowed. */
+  reminders: TaskReminder[];
+  /** Keys of reminder alerts already delivered, so none fires twice. Pruned when the due moment changes. */
+  firedAlerts: string[];
+  /** If in the future, the task's alerts are snoozed until this epoch ms. */
+  snoozedUntil: number | null;
+  /** Local dates ("YYYY-MM-DD") this task was completed on — the completed-task history. */
+  completedDates: string[];
   /** The list/project this task belongs to, or null for the default Inbox. */
   projectId: string | null;
   priority: Priority;

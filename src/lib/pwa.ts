@@ -65,3 +65,17 @@ export async function promptInstall(): Promise<void> {
   deferredInstall = null;
   emit();
 }
+
+export type InstallStatus = 'installed' | 'available' | 'unavailable';
+
+/**
+ * Whether Yaad is running as an installed app (standalone window), can be
+ * installed right now (the browser offered a prompt), or neither (already in a
+ * browser tab on a browser/OS that offers no prompt, e.g. iOS Safari — there
+ * the user adds it from the Share menu).
+ */
+export function installStatus(): InstallStatus {
+  const standalone = matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  if (standalone) return 'installed';
+  return canInstall() ? 'available' : 'unavailable';
+}

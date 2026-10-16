@@ -2,9 +2,10 @@
 import '@fontsource-variable/manrope/wght.css';
 import { render } from 'preact';
 import { App } from './components/App';
-import { applyTheme, getPrefs } from './lib/prefs';
+import { applyDensity, applyTheme, getPrefs } from './lib/prefs';
 import { initPwa } from './lib/pwa';
 
 applyTheme(getPrefs().theme);
+applyDensity(getPrefs().density);
 initPwa();
 render(<App />, document.getElementById('app')!);

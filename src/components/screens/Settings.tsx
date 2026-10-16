@@ -1,49 +1,42 @@
-/** Settings: theme, pings, Do Not Disturb, backup/restore, install, clear-all, version. */
+/** General settings: you, appearance, date & time, tasks, install status, backup/restore, clear-all, version. */
 import { useRef, useState } from 'preact/hooks';
 import { destroyDatabase } from '../../lib/db';
-import { formatTimeOfDay, tomorrowAt, untilPhrase } from '../../lib/format';
-import { permission, requestPermission, sendTestNotification } from '../../lib/notify';
-import { applyTheme, clearPrefs, getPrefs, isPaused, pauseFor, pauseUntil, resume, setPrefs, type Theme } from '../../lib/prefs';
-import { canInstall, promptInstall } from '../../lib/pwa';
+import { permission } from '../../lib/notify';
+import { applyDensity, applyTheme, clearPrefs, getPrefs, setPrefs, type DateFormat, type Density, type Theme } from '../../lib/prefs';
+import { installStatus, promptInstall } from '../../lib/pwa';
 import { clearStatsCache } from '../../lib/stats';
 import { exportBackup, importBackup } from '../../lib/store';
 import { toast } from '../../lib/toast';
 import { APP_VERSION } from '../../lib/version';
-import { go, useData, useNow } from '../router';
-import { Dialog, Header, Icon, Page, Section, Segmented, SettingRow, Switch } from '../ui';
+import type { Priority } from '../../lib/types';
+import { go, useData } from '../router';
+import { Dialog, Header, Icon, Page, Section, Segmented, SettingRow } from '../ui';
 
 const PERM_LABEL: Record<NotificationPermission, string> = {
   granted: 'On',
-  denied: 'Blocked in browser',
-  default: 'Not set',
+  denied: 'Blocked',
+  default: 'Off',
 };
 
 export function Settings() {
   const reminders = useData();
-  const now = useNow();
-  const [theme, setTheme] = useState<Theme>(getPrefs().theme);
-  const [name, setName] = useState(getPrefs().name);
-  const [sound, setSound] = useState(getPrefs().sound);
-  const [perm, setPerm] = useState(permission());
+  const [prefs, setLocal] = useState(getPrefs());
   const [confirmWipe, setConfirmWipe] = useState(false);
-  const [, setTick] = useState(0);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const dnd = isPaused(now);
-  const refresh = () => setTick((n) => n + 1);
+  const update = (patch: Partial<typeof prefs>) => {
+    setPrefs(patch);
+    setLocal(getPrefs());
+  };
 
   const changeTheme = (value: Theme) => {
-    setTheme(value);
-    setPrefs({ theme: value });
+    update({ theme: value });
     applyTheme(value);
   };
 
-  const enableNotifications = async () => {
-    const result = await requestPermission();
-    setPerm(result);
-    setPrefs({ notifyAsked: true });
-    if (result === 'granted') toast('Notifications on.');
-    else if (result === 'denied') toast('Blocked. Allow notifications in your browser settings.', { tone: 'warn' });
+  const changeDensity = (value: Density) => {
+    update({ density: value });
+    applyDensity(value);
   };
 
   const wipe = async () => {
@@ -52,14 +45,6 @@ export function Settings() {
     clearStatsCache();
     toast('Everything deleted');
     location.href = '/';
-  };
-
-  const testNotification = async () => {
-    const result = await sendTestNotification();
-    setPerm(permission());
-    if (result === 'ok') toast('Test sent — check your notifications.');
-    else if (result === 'denied') toast('Blocked. Allow notifications in your browser/phone settings.', { tone: 'warn' });
-    else toast('This browser can’t show notifications.', { tone: 'warn' });
   };
 
   const exportData = () => {
@@ -78,13 +63,15 @@ export function Settings() {
     if (!file) return;
     try {
       const count = await importBackup(JSON.parse(await file.text()));
-      toast(count > 0 ? `Imported ${count} reminder${count === 1 ? '' : 's'}` : 'Nothing to import');
+      toast(count > 0 ? `Imported ${count} item${count === 1 ? '' : 's'}` : 'Nothing to import');
     } catch {
       toast('That isn’t a valid Yaad backup file.', { tone: 'warn' });
     } finally {
       if (fileInput.current) fileInput.current.value = '';
     }
   };
+
+  const install = installStatus();
 
   return (
     <>
@@ -94,116 +81,146 @@ export function Settings() {
           <div class="card">
             <label class="block">
               <span class="section-label mb-1.5 block">Your name</span>
-              <input
-                class="field"
-                placeholder="Add your name for a warmer greeting"
-                value={name}
-                maxLength={30}
-                onInput={(e) => {
-                  setName(e.currentTarget.value);
-                  setPrefs({ name: e.currentTarget.value });
-                }}
-                aria-label="Your name"
-              />
+              <input class="field" placeholder="Add your name for a warmer greeting" value={prefs.name} maxLength={30} onInput={(e) => update({ name: e.currentTarget.value })} aria-label="Your name" />
             </label>
           </div>
         </Section>
 
         <Section title="Appearance">
+          <div class="card space-y-3">
+            <div>
+              <span class="section-label mb-1.5 block">Theme</span>
+              <Segmented
+                label="Theme"
+                value={prefs.theme}
+                onChange={changeTheme}
+                options={[
+                  { value: 'system', label: 'System' },
+                  { value: 'light', label: 'Light' },
+                  { value: 'dark', label: 'Dark' },
+                ]}
+              />
+            </div>
+            <div>
+              <span class="section-label mb-1.5 block">Layout</span>
+              <Segmented
+                label="Layout density"
+                value={prefs.density}
+                onChange={changeDensity}
+                options={[
+                  { value: 'comfortable', label: 'Comfortable' },
+                  { value: 'compact', label: 'Compact' },
+                ]}
+              />
+            </div>
+          </div>
+        </Section>
+
+        <Section title="Date & time">
+          <div class="card space-y-3">
+            <div>
+              <span class="section-label mb-1.5 block">Date format</span>
+              <Segmented<DateFormat>
+                label="Date format"
+                value={prefs.dateFormat}
+                onChange={(v) => update({ dateFormat: v })}
+                options={[
+                  { value: 'mdy', label: 'MM/DD/YYYY' },
+                  { value: 'dmy', label: 'DD/MM/YYYY' },
+                  { value: 'ymd', label: 'YYYY-MM-DD' },
+                ]}
+              />
+            </div>
+            <div>
+              <span class="section-label mb-1.5 block">Time format</span>
+              <Segmented<string>
+                label="Time format"
+                value={prefs.time24 ? '24' : '12'}
+                onChange={(v) => update({ time24: v === '24' })}
+                options={[
+                  { value: '12', label: '12-hour' },
+                  { value: '24', label: '24-hour' },
+                ]}
+              />
+            </div>
+            <div>
+              <span class="section-label mb-1.5 block">Week starts on</span>
+              <Segmented<string>
+                label="Week starts on"
+                value={String(prefs.weekStart)}
+                onChange={(v) => update({ weekStart: v === '0' ? 0 : 1 })}
+                options={[
+                  { value: '1', label: 'Monday' },
+                  { value: '0', label: 'Sunday' },
+                ]}
+              />
+            </div>
+          </div>
+        </Section>
+
+        <Section title="Tasks">
           <div class="card">
-            <Segmented
-              label="Theme"
-              value={theme}
-              onChange={changeTheme}
+            <span class="section-label mb-1.5 block">Default priority for new tasks</span>
+            <Segmented<Priority>
+              label="Default priority"
+              value={prefs.defaultPriority}
+              onChange={(v) => update({ defaultPriority: v })}
               options={[
-                { value: 'system', label: 'System' },
-                { value: 'light', label: 'Light' },
-                { value: 'dark', label: 'Dark' },
+                { value: 'none', label: 'None' },
+                { value: 'low', label: 'Low' },
+                { value: 'medium', label: 'Med' },
+                { value: 'high', label: 'High' },
               ]}
             />
           </div>
         </Section>
 
-        <Section title="Pings">
-          <div class="card">
+        <Section title="Tasks & reminders">
+          <div class="card ruled">
+            <SettingRow icon="tag" label="Categories" hint="Group tasks — Work, Home, Errands…" onClick={() => go('/categories')} />
             <SettingRow
               icon="bell"
-              label="Notifications"
-              hint={perm === 'denied' ? 'Allow them in your browser settings to turn on.' : 'System pings while Yaad is open.'}
-              onClick={perm === 'granted' ? undefined : () => void enableNotifications()}
-              value={perm === 'granted' ? PERM_LABEL.granted : undefined}
-            >
-              {perm === 'granted' ? <span class="shrink-0 text-[0.875rem] font-semibold text-teal">On</span> : undefined}
-            </SettingRow>
-            <div class="border-t border-rule">
-              <SettingRow icon="volume" label="Sound" hint="A soft chime with each ping.">
-                <Switch checked={sound} onChange={(on) => { setSound(on); setPrefs({ sound: on }); }} label="Ping sound" />
-              </SettingRow>
-            </div>
-            <div class="border-t border-rule">
-              <SettingRow icon="bell" label="Send a test notification" hint="Not getting reminders? Tap to check pings reach you." onClick={() => void testNotification()} />
-            </div>
-          </div>
-          {perm !== 'granted' && (
-            <p class="mt-2 px-1 text-[0.8125rem] leading-snug text-muted">
-              Reminders only ping while Yaad is open. For the best chance on a phone, <b>install</b> the app and allow notifications.
-            </p>
-          )}
-        </Section>
-
-        <Section title="Do Not Disturb">
-          <div class="card">
-            {dnd ? (
-              <div class="flex items-center gap-3">
-                <span class="grid size-9 shrink-0 place-items-center rounded-[12px] bg-field text-haldi">
-                  <Icon name="pause" size={19} />
-                </span>
-                <span class="min-w-0 flex-1">
-                  <span class="block font-semibold">All reminders paused</span>
-                  <span class="block text-[0.8125rem] text-muted">Resumes {formatTimeOfDay(new Date(getPrefs().pausedUntil))} · {untilPhrase(getPrefs().pausedUntil - now)}</span>
-                </span>
-                <button type="button" class="min-h-9 shrink-0 rounded-full bg-teal px-4 text-[0.875rem] font-bold text-on-teal" onClick={() => { resume(); refresh(); }}>
-                  Resume
-                </button>
-              </div>
-            ) : (
-              <>
-                <p class="section-label mb-2">Mute every reminder for a while.</p>
-                <div class="flex flex-wrap gap-2">
-                  <button type="button" class="chip" onClick={() => { pauseFor(60); refresh(); }}>1 hour</button>
-                  <button type="button" class="chip" onClick={() => { pauseFor(180); refresh(); }}>3 hours</button>
-                  <button type="button" class="chip" onClick={() => { pauseUntil(tomorrowAt(8)); refresh(); }}>Until tomorrow</button>
-                </div>
-              </>
-            )}
+              label="Reminder settings"
+              hint="Notifications, snooze, quiet hours, daily summary"
+              value={PERM_LABEL[permission()]}
+              onClick={() => go('/settings/reminders')}
+            />
           </div>
         </Section>
 
         <Section title="Backup">
           <div class="card">
-            <SettingRow icon="download" label="Export backup" hint="Save all reminders to a JSON file on this device." onClick={exportData} />
+            <SettingRow icon="download" label="Export backup" hint="Save reminders, tasks and categories to a JSON file on this device." onClick={exportData} />
             <div class="border-t border-rule">
-              <SettingRow icon="upload" label="Restore from backup" hint="Import reminders from a Yaad backup file." onClick={() => fileInput.current?.click()} />
+              <SettingRow icon="upload" label="Restore from backup" hint="Import from a Yaad backup file." onClick={() => fileInput.current?.click()} />
             </div>
           </div>
           <input ref={fileInput} type="file" accept="application/json,.json" class="hidden" onChange={(e) => void onImportFile(e)} />
         </Section>
 
-        {canInstall() && (
-          <Section title="App">
-            <div class="card">
-              <SettingRow icon="phone" label="Install Yaad" hint="Add to your home screen so it can keep running." onClick={() => void promptInstall()} />
-            </div>
-          </Section>
-        )}
+        <Section title="App">
+          <div class="card">
+            {install === 'installed' ? (
+              <SettingRow icon="phone" label="Installed" hint="Yaad is running as an app on this device.">
+                <Icon name="check" size={20} class="text-teal" />
+              </SettingRow>
+            ) : install === 'available' ? (
+              <SettingRow icon="phone" label="Install Yaad" hint="Add to your home screen so it opens like an app and works offline." onClick={() => void promptInstall()} />
+            ) : (
+              <SettingRow icon="phone" label="Not installed" hint="Use your browser’s menu → “Install app” or “Add to Home Screen”.">
+                <span class="shrink-0 text-[0.875rem] text-muted">Browser tab</span>
+              </SettingRow>
+            )}
+          </div>
+        </Section>
 
         <Section title="How reminders work">
           <div class="card space-y-3 text-[0.875rem] leading-snug text-muted">
             <p class="flex gap-2.5">
               <Icon name="clock" size={18} class="mt-0.5 shrink-0 text-teal" />
               <span>
-                Reminders fire while Yaad is open — including as an installed app kept running in the background. The web can’t wake a
-                fully-closed page at an exact minute, so keep it installed and open for pings to arrive on time.
+                Reminders fire on time while Yaad is open — including as an installed app kept running in the background. When it’s closed, the
+                web can’t wake itself at an exact minute; anything missed is shown when you reopen it. See Reminder settings for details.
               </span>
             </p>
             <p class="flex gap-2.5">

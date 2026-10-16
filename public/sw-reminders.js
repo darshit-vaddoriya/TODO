@@ -5,7 +5,12 @@
  * app is fully closed, so Yaad's real scheduling runs in the page. This handler
  * is only a best-effort catch-up: on installed Chrome/Android, Periodic
  * Background Sync wakes the worker roughly once every few hours and, if any
- * enabled reminder is overdue, shows a single nudge to reopen the app.
+ * interval reminder or task reminder has come due, shows a single nudge to
+ * reopen the app. The browser decides if and how often it runs.
+ *
+ * It also routes notification buttons: Snooze / Done on a task notification open
+ * the app at #/act/... and the app applies the change (recurrence and alert rules
+ * live there, not here).
  */
 const CATCH_UP_TEXT = {
   one: 'A reminder is waiting. Open Yaad to catch up.',
@@ -45,18 +50,51 @@ function withinWindow(r, now) {
   return mins >= clockToMinutes(r.startTime) && mins <= clockToMinutes(r.endTime);
 }
 
+/** Epoch ms for a local "YYYY-MM-DD" date at "HH:MM" (mirrors alerts.ts localMoment). */
+function localMoment(date, time) {
+  const [y, m, d] = String(date).split('-').map(Number);
+  const mins = clockToMinutes(time);
+  return new Date(y, (m || 1) - 1, d || 1, Math.floor(mins / 60), mins % 60, 0, 0).getTime();
+}
+
+/** Task reminders that have come due and were never delivered (mirrors alerts.ts planAlerts, without quiet hours). */
+async function countMissedTaskReminders(db, nowMs) {
+  if (!db.objectStoreNames.contains('tasks')) return 0;
+  let defaultTime = '09:00';
+  if (db.objectStoreNames.contains('meta')) {
+    const prefs = await request(db.transaction('meta').objectStore('meta').get('alertPrefs'));
+    if (prefs && typeof prefs.defaultReminderTime === 'string') defaultTime = prefs.defaultReminderTime;
+  }
+  const tasks = await request(db.transaction('tasks').objectStore('tasks').getAll());
+  let count = 0;
+  for (const t of tasks) {
+    if (t.done || !t.dueDate || !Array.isArray(t.reminders)) continue;
+    if (t.snoozedUntil && t.snoozedUntil > nowMs) continue;
+    const fired = Array.isArray(t.firedAlerts) ? t.firedAlerts : [];
+    const due = localMoment(t.dueDate, t.dueTime || defaultTime);
+    const hasDue = t.reminders.some((r) => {
+      const moment = due - r.offsetMin * 60000;
+      return moment <= nowMs && !fired.includes(t.id + ':' + r.id + ':' + moment);
+    });
+    if (hasDue) count++;
+  }
+  return count;
+}
+
 async function catchUp() {
   const db = await openExistingDb();
-  if (!db || !db.objectStoreNames.contains('reminders')) return db && db.close();
-  const all = await request(db.transaction('reminders').objectStore('reminders').getAll());
+  if (!db) return;
   const now = new Date();
   const nowMs = now.getTime();
-  const overdue = all.filter(
-    (r) => r.enabled && withinWindow(r, now) && nowMs - (r.lastFiredAt || 0) >= r.intervalMin * 60000,
-  );
-  if (overdue.length > 0) {
+  let waiting = 0;
+  if (db.objectStoreNames.contains('reminders')) {
+    const all = await request(db.transaction('reminders').objectStore('reminders').getAll());
+    waiting += all.filter((r) => r.enabled && withinWindow(r, now) && nowMs - (r.lastFiredAt || 0) >= r.intervalMin * 60000).length;
+  }
+  waiting += await countMissedTaskReminders(db, nowMs);
+  if (waiting > 0) {
     await self.registration.showNotification('Yaad', {
-      body: overdue.length === 1 ? CATCH_UP_TEXT.one : CATCH_UP_TEXT.many.replace('{n}', String(overdue.length)),
+      body: waiting === 1 ? CATCH_UP_TEXT.one : CATCH_UP_TEXT.many.replace('{n}', String(waiting)),
       icon: '/icons/icon-192.png',
       badge: '/icons/badge-72.png',
       tag: 'yaad-catchup',
@@ -81,10 +119,37 @@ async function updateReminder(id, fields) {
   for (const w of windows) w.postMessage({ type: 'reminder-changed', id });
 }
 
+/** Focus an open Yaad window and send it to `path`, or open one. */
+async function openApp(path) {
+  const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  const open = windows.find((w) => new URL(w.url).origin === self.location.origin);
+  if (!open) return self.clients.openWindow(path);
+  try {
+    await open.focus();
+    if ('navigate' in open) await open.navigate(path);
+    else open.postMessage({ type: 'navigate', path });
+  } catch {
+    open.postMessage({ type: 'navigate', path });
+  }
+}
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  // Notification tags are "yaad-<id>" (see notify.ts).
-  const id = String(event.notification.tag || '').replace(/^yaad-/, '');
+  const tag = String(event.notification.tag || '');
+
+  // Task notifications (tags "yaad-task-<id>", "yaad-overdue", "yaad-summary"): route through the app.
+  if (tag.startsWith('yaad-task-') || tag === 'yaad-overdue' || tag === 'yaad-summary') {
+    const taskId = event.notification.data && event.notification.data.taskId;
+    let path = '/';
+    if (taskId && event.action === 'snooze') path = '/#/act/snooze/' + taskId;
+    else if (taskId && event.action === 'done') path = '/#/act/done/' + taskId;
+    else if (taskId) path = '/#/task/' + taskId;
+    event.waitUntil(openApp(path));
+    return;
+  }
+
+  // Interval-reminder notifications are tagged "yaad-<id>" (see notify.ts).
+  const id = tag.replace(/^yaad-/, '');
 
   if (event.action === 'snooze' && id) {
     event.waitUntil(updateReminder(id, { snoozedUntil: Date.now() + 10 * 60000 }));

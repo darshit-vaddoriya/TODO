@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeTask } from './task-model';
-import { allTags, buildView, dueBucket, EMPTY_FILTER, matchesFilter, sortTasks } from './task-view';
+import { allTags, buildView, completedHistory, dayProgress, dueBucket, EMPTY_FILTER, groupByDate, isTaskTab, isUrgent, matchesFilter, sortTasks, tabCounts, tabTasks } from './task-view';
 import type { Task } from './types';
 
 const task = (over: Partial<Task> & { title: string }, i = 0): Task =>
@@ -101,5 +101,69 @@ describe('buildView', () => {
     expect(view.groups.map((g) => g.key)).toEqual(['upcoming']);
     expect(view.matched).toBe(1);
     expect(view.done).toEqual([]);
+  });
+});
+
+describe('dayProgress', () => {
+  it('counts today\'s completions (incl. repeating tasks) against everything planned', () => {
+    const doneToday = task({ title: 'a', done: true, completedDates: [TODAY] }, 1);
+    // A repeating task already completed today has moved on to tomorrow.
+    const repeatedToday = task({ title: 'b', repeat: { kind: 'daily' }, dueDate: '2026-06-16', completedDates: [TODAY] }, 2);
+    const dueNow = task({ title: 'c', dueDate: TODAY }, 3);
+    const late = task({ title: 'd', dueDate: '2026-06-10' }, 4);
+    const later = task({ title: 'e', dueDate: '2026-06-20' }, 5);
+    const undated = task({ title: 'f' }, 6);
+    expect(dayProgress([doneToday, repeatedToday, dueNow, late, later, undated], TODAY)).toEqual({ done: 2, total: 4 }); // 2 done + due-today + overdue
+  });
+});
+
+describe('tab views', () => {
+  const overdue = task({ title: 'late', dueDate: '2026-06-10' }, 1);
+  const today = task({ title: 'now', dueDate: TODAY }, 2);
+  const upcoming = task({ title: 'soon', dueDate: '2026-06-20' }, 3);
+  const undated = task({ title: 'whenever' }, 4);
+  const done = task({ title: 'finished', done: true, dueDate: TODAY }, 5);
+  const all = [overdue, today, upcoming, undated, done];
+
+  it('assigns open tasks to the right tab', () => {
+    expect(tabTasks(all, 'today', TODAY).map((t) => t.title)).toEqual(['now']);
+    expect(tabTasks(all, 'upcoming', TODAY).map((t) => t.title)).toEqual(['soon']);
+    expect(tabTasks(all, 'overdue', TODAY).map((t) => t.title)).toEqual(['late']);
+    expect(tabTasks(all, 'all', TODAY).map((t) => t.title)).toEqual(['late', 'now', 'soon', 'whenever']);
+    expect(tabTasks(all, 'done', TODAY)).toEqual([]);
+  });
+
+  it('counts each tab', () => {
+    expect(tabCounts(all, TODAY)).toEqual({ today: 1, upcoming: 1, all: 4, overdue: 1 });
+  });
+
+  it('recognises tab ids', () => {
+    expect(isTaskTab('overdue')).toBe(true);
+    expect(isTaskTab('nope')).toBe(false);
+    expect(isTaskTab(undefined)).toBe(false);
+  });
+
+  it('groups upcoming tasks by date, ordered by date then time', () => {
+    const a = task({ title: 'a', dueDate: '2026-06-21', dueTime: '15:00' }, 1);
+    const b = task({ title: 'b', dueDate: '2026-06-20', dueTime: '09:00' }, 2);
+    const c = task({ title: 'c', dueDate: '2026-06-21', dueTime: '08:00' }, 3);
+    expect(groupByDate([a, b, c]).map((g) => [g.date, g.tasks.map((t) => t.title)])).toEqual([
+      ['2026-06-20', ['b']],
+      ['2026-06-21', ['c', 'a']],
+    ]);
+  });
+
+  it('builds completed history, newest first, one entry per completion (repeating tasks repeat)', () => {
+    const one = task({ title: 'one', done: true, completedDates: ['2026-06-14'], completedAt: 100 }, 1);
+    const habit = task({ title: 'habit', repeat: { kind: 'daily' }, dueDate: '2026-06-16', completedDates: ['2026-06-13', '2026-06-15'], completedAt: 200 }, 2);
+    expect(completedHistory([one, habit]).map((e) => `${e.date} ${e.task.title}`)).toEqual(['2026-06-15 habit', '2026-06-14 one', '2026-06-13 habit']);
+  });
+
+  it('flags overdue and high-priority-due tasks as urgent', () => {
+    expect(isUrgent(task({ title: 'x', dueDate: '2026-06-10' }), TODAY)).toBe(true);
+    expect(isUrgent(task({ title: 'x', dueDate: TODAY, priority: 'high' }), TODAY)).toBe(true);
+    expect(isUrgent(task({ title: 'x', dueDate: TODAY, priority: 'low' }), TODAY)).toBe(false);
+    expect(isUrgent(task({ title: 'x', dueDate: '2026-06-20', priority: 'high' }), TODAY)).toBe(false);
+    expect(isUrgent(task({ title: 'x', dueDate: '2026-06-10', done: true }), TODAY)).toBe(false);
   });
 });

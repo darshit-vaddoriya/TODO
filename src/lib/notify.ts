@@ -1,6 +1,7 @@
 /** Permission handling and the actual ping: a system notification, plus optional sound and vibration. */
 import { getPrefs } from './prefs';
-import type { Reminder, Task } from './types';
+import { toast } from './toast';
+import type { Reminder } from './types';
 
 export function notificationsSupported(): boolean {
   return typeof Notification !== 'undefined';
@@ -38,6 +39,16 @@ export async function registerCatchUp(): Promise<void> {
     await reg?.periodicSync?.register('yaad-catchup', { minInterval: 3 * 60 * 60 * 1000 });
   } catch {
     // Not installed, or the browser declined periodic sync. In-page reminders still work.
+  }
+}
+
+/** Vibrate where supported — and only once the user has interacted, which browsers require. */
+function buzz(pattern: number | number[]): void {
+  if (!('vibrate' in navigator) || navigator.userActivation?.hasBeenActive === false) return;
+  try {
+    navigator.vibrate(pattern);
+  } catch {
+    // Not supported.
   }
 }
 
@@ -97,51 +108,62 @@ export async function ping(reminder: Reminder): Promise<void> {
     }
   }
 
-  if ((reminder.vibrate ?? true) && 'vibrate' in navigator) {
-    try {
-      navigator.vibrate([120, 60, 120]);
-    } catch {
-      // Not supported.
-    }
-  }
+  if (reminder.vibrate ?? true) buzz([120, 60, 120]);
   if (getPrefs().sound) playChime();
 }
 
+/** What to show for a task alert, a nudge or the daily summary. */
+export interface TaskNotice {
+  title: string;
+  body: string;
+  /** Notifications with the same tag replace each other, so a task never stacks duplicates. */
+  tag: string;
+  /** The task it is about, if any — enables the Snooze / Done actions and opens it on tap. */
+  taskId: string | null;
+  /** Show the in-app alert (toast) as well as the system notification. Default true. */
+  inApp?: boolean;
+  /** Called from the in-app toast's Snooze button. */
+  onSnooze?: () => void;
+}
+
 /**
- * Fire a task's "due" notification. Date-only, so the body says due vs overdue
- * rather than a time. Uses the same notification path as reminders.
+ * Deliver a task notice: an in-app alert (always, so it works with notifications
+ * off or blocked), plus a system notification where permitted, with sound and
+ * vibration. A task notice carries Snooze / Done actions that the service
+ * worker routes back into the app.
  */
-export async function pingTask(task: Task, today: string): Promise<void> {
-  const overdue = !!task.dueDate && task.dueDate < today;
-  const title = `📋 ${task.title}`;
-  const options: NotificationOptions = {
-    body: overdue ? 'This task is overdue.' : 'This task is due today.',
-    icon: '/icons/icon-192.png',
-    badge: '/icons/badge-72.png',
-    tag: `yaad-task-${task.id}`,
-    ...({ renotify: true } as NotificationOptions),
-  };
+export async function deliverTaskNotice(notice: TaskNotice): Promise<void> {
+  const prefs = getPrefs();
+  if (notice.inApp !== false) {
+    toast(`${notice.title} — ${notice.body}`, notice.onSnooze ? { duration: 9000, action: { label: `Snooze ${prefs.snoozeMin}m`, run: notice.onSnooze } } : { duration: 6000 });
+  }
   if (permission() === 'granted') {
+    const options: NotificationOptions = {
+      body: notice.body,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/badge-72.png',
+      tag: notice.tag,
+      data: { taskId: notice.taskId },
+      // renotify so a repeat with the same tag still alerts; actions need a service worker.
+      ...({
+        renotify: true,
+        actions: notice.taskId ? [{ action: 'snooze', title: `Snooze ${prefs.snoozeMin} min` }, { action: 'done', title: 'Done' }] : [],
+      } as NotificationOptions),
+    };
     try {
       const reg = await navigator.serviceWorker?.ready;
-      if (reg) await reg.showNotification(title, options);
-      else new Notification(title, options);
+      if (reg) await reg.showNotification(notice.title, options);
+      else new Notification(notice.title, options);
     } catch {
       try {
-        new Notification(title, options);
+        new Notification(notice.title, options);
       } catch {
-        // Notification failed entirely; nothing else to do.
+        // The system notification failed entirely; the in-app alert above still showed.
       }
     }
   }
-  if ('vibrate' in navigator) {
-    try {
-      navigator.vibrate([120, 60, 120]);
-    } catch {
-      // Not supported.
-    }
-  }
-  if (getPrefs().sound) playChime();
+  buzz([120, 60, 120]);
+  if (prefs.sound) playChime();
 }
 
 /**
@@ -170,13 +192,7 @@ export async function sendTestNotification(): Promise<'ok' | 'denied' | 'unsuppo
       return 'unsupported';
     }
   }
-  if ('vibrate' in navigator) {
-    try {
-      navigator.vibrate(120);
-    } catch {
-      // Not supported.
-    }
-  }
+  buzz(120);
   if (getPrefs().sound) playChime();
   return 'ok';
 }

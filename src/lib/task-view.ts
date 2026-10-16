@@ -66,7 +66,7 @@ export function sortTasks(tasks: Task[], key: SortKey): Task[] {
       return arr.sort((a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || a.order - b.order);
     case 'due':
       return arr.sort((a, b) => {
-        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate) || a.order - b.order;
+        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate) || (a.dueTime ?? '24:00').localeCompare(b.dueTime ?? '24:00') || a.order - b.order;
         if (a.dueDate) return -1; // dated tasks before undated
         if (b.dueDate) return 1;
         return a.order - b.order;
@@ -123,4 +123,96 @@ export function buildView(tasks: Task[], filter: TaskFilter, sort: SortKey, toda
   })).filter((g) => g.tasks.length > 0);
 
   return { groups, done, total: tasks.length, matched: matched.length };
+}
+
+export interface DayProgress {
+  /** Tasks completed today (from the completion history, so repeating tasks count too). */
+  done: number;
+  /** Everything planned for today: completed today + still-open tasks due today or overdue. */
+  total: number;
+}
+
+/** Daily task progress for the dashboard and report. */
+export function dayProgress(tasks: Task[], today: string): DayProgress {
+  const done = tasks.filter((t) => t.completedDates.includes(today)).length;
+  const open = tasks.filter((t) => !t.done && t.dueDate !== null && t.dueDate <= today).length;
+  return { done, total: done + open };
+}
+
+// --- Tab views: Today · Upcoming · All · Overdue · Completed ----------------------
+
+export type TaskTab = 'today' | 'upcoming' | 'all' | 'overdue' | 'done';
+export const TASK_TABS: { id: TaskTab; label: string }[] = [
+  { id: 'today', label: 'Today' },
+  { id: 'upcoming', label: 'Upcoming' },
+  { id: 'all', label: 'All' },
+  { id: 'overdue', label: 'Overdue' },
+  { id: 'done', label: 'Completed' },
+];
+
+export function isTaskTab(v: string | undefined): v is TaskTab {
+  return TASK_TABS.some((t) => t.id === v);
+}
+
+/** The open tasks that belong on a tab (before search / filter / sort). `done` is handled by completedHistory. */
+export function tabTasks(tasks: Task[], tab: TaskTab, today: string): Task[] {
+  const open = tasks.filter((t) => !t.done);
+  switch (tab) {
+    case 'today':
+      return open.filter((t) => t.dueDate === today);
+    case 'upcoming':
+      return open.filter((t) => t.dueDate !== null && t.dueDate > today);
+    case 'overdue':
+      return open.filter((t) => t.dueDate !== null && t.dueDate < today);
+    case 'all':
+      return open;
+    case 'done':
+      return [];
+  }
+}
+
+/** Badge counts for the tabs. */
+export function tabCounts(tasks: Task[], today: string): Record<Exclude<TaskTab, 'done'>, number> {
+  return {
+    today: tabTasks(tasks, 'today', today).length,
+    upcoming: tabTasks(tasks, 'upcoming', today).length,
+    all: tabTasks(tasks, 'all', today).length,
+    overdue: tabTasks(tasks, 'overdue', today).length,
+  };
+}
+
+/** Sort by due date then time (undated last), then manual order. */
+function byDueMoment(a: Task, b: Task): number {
+  return (a.dueDate ?? '9999').localeCompare(b.dueDate ?? '9999') || (a.dueTime ?? '').localeCompare(b.dueTime ?? '') || a.order - b.order;
+}
+
+/** Group tasks under their due date, in date order — the Upcoming view. */
+export function groupByDate(tasks: Task[]): { date: string; tasks: Task[] }[] {
+  const groups = new Map<string, Task[]>();
+  for (const t of [...tasks].sort(byDueMoment)) {
+    const key = t.dueDate ?? '';
+    groups.set(key, [...(groups.get(key) ?? []), t]);
+  }
+  return [...groups].map(([date, list]) => ({ date, tasks: list }));
+}
+
+export interface HistoryEntry {
+  date: string;
+  task: Task;
+}
+
+/**
+ * Completed-task history: one entry per recorded completion, newest first. A
+ * repeating task appears once per day it was completed.
+ */
+export function completedHistory(tasks: Task[]): HistoryEntry[] {
+  return tasks
+    .flatMap((task) => task.completedDates.map((date) => ({ date, task })))
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.task.completedAt ?? 0) - (a.task.completedAt ?? 0) || a.task.title.localeCompare(b.task.title));
+}
+
+/** Overdue and due-today-with-high-priority tasks are visually urgent. */
+export function isUrgent(task: Task, today: string): boolean {
+  if (task.done) return false;
+  return (task.dueDate !== null && task.dueDate < today) || (task.priority === 'high' && task.dueDate !== null && task.dueDate <= today);
 }

@@ -1,18 +1,23 @@
 /**
  * Natural-language quick-add. Turns a line like
- *   "Pay rent tomorrow !high #home"
- * into a structured task: a due date, a priority, tags, and the leftover title.
- * Pure and date-injectable so it can be unit-tested. Recognised tokens are
- * stripped from the title; anything it doesn't understand stays in the title.
+ *   "Pay rent tomorrow 6pm !high #home every month"
+ * into a structured task: a due date and time, a priority, tags, a repeat rule
+ * and the leftover title. Pure and date-injectable so it can be unit-tested.
+ * Recognised tokens are stripped from the title; anything it doesn't
+ * understand stays in the title.
  */
 import { localDate } from './format';
-import type { Priority, Weekday } from './types';
+import { addDays, dayOfMonth, firstOccurrenceOnOrAfter, weekdayOf } from './task-model';
+import type { Priority, RepeatRule, Weekday } from './types';
 
 export interface ParsedQuickAdd {
   title: string;
   dueDate: string | null;
+  /** "HH:MM" if a time of day was given. */
+  dueTime: string | null;
   priority: Priority;
   tags: string[];
+  repeat: RepeatRule;
 }
 
 const WEEKDAYS: Record<string, Weekday> = {
@@ -24,6 +29,7 @@ const WEEKDAYS: Record<string, Weekday> = {
   fri: 5, friday: 5,
   sat: 6, saturday: 6,
 };
+const WD = 'sun|sunday|mon|monday|tue|tues|tuesday|wed|weds|wednesday|thu|thur|thurs|thursday|fri|friday|sat|saturday';
 
 const PRIORITY_WORDS: Record<string, Priority> = {
   low: 'low', l: 'low',
@@ -31,26 +37,48 @@ const PRIORITY_WORDS: Record<string, Priority> = {
   high: 'high', h: 'high', hi: 'high',
 };
 
-function dateFromParts(dateStr: string): Date {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, (m || 1) - 1, d || 1);
-}
-
-function addDays(today: string, n: number): string {
-  const base = dateFromParts(today);
-  base.setDate(base.getDate() + n);
-  return localDate(base);
-}
+const pad = (n: number) => String(n).padStart(2, '0');
 
 /** The next occurrence of `target` strictly after today (1–7 days ahead). */
 function nextWeekday(today: string, target: Weekday): string {
-  const delta = ((target - dateFromParts(today).getDay() + 7) % 7) || 7;
+  const delta = ((target - weekdayOf(today) + 7) % 7) || 7;
   return addDays(today, delta);
 }
 
-/** Strip the first regex match from `text`, returning the cleaned text. */
-function strip(text: string, re: RegExp): string {
-  return text.replace(re, ' ');
+const strip = (text: string, re: RegExp) => text.replace(re, ' ');
+
+/** "6pm", "6:30 pm", "at 18:30", "noon" → "HH:MM". */
+function parseTime(text: string): { text: string; time: string | null } {
+  const h12 = text.match(/\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i);
+  if (h12) {
+    const h = Number(h12[1]);
+    const m = Number(h12[2] ?? 0);
+    if (h >= 1 && h <= 12 && m <= 59) {
+      const hour = (h % 12) + (/pm/i.test(h12[3]) ? 12 : 0);
+      return { text: strip(text, /\b(?:at\s+)?\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/i), time: `${pad(hour)}:${pad(m)}` };
+    }
+  }
+  const h24 = text.match(/\b(?:at\s+)?([01]?\d|2[0-3]):([0-5]\d)\b/);
+  if (h24) return { text: strip(text, /\b(?:at\s+)?(?:[01]?\d|2[0-3]):[0-5]\d\b/), time: `${pad(Number(h24[1]))}:${h24[2]}` };
+  if (/\bnoon\b/i.test(text)) return { text: strip(text, /\b(?:at\s+)?noon\b/i), time: '12:00' };
+  return { text, time: null };
+}
+
+/** "every monday", "daily", "weekly", "monthly", "every 2 weeks" … → a repeat rule. */
+function parseRepeat(text: string): { text: string; repeat: RepeatRule } {
+  const everyWd = text.match(new RegExp(`\\bevery\\s+(${WD})\\b`, 'i'));
+  if (everyWd) {
+    return { text: strip(text, new RegExp(`\\bevery\\s+(?:${WD})\\b`, 'i')), repeat: { kind: 'weekly', days: [WEEKDAYS[everyWd[1].toLowerCase()]] } };
+  }
+  const everyN = text.match(/\bevery\s+(\d{1,3})\s+(day|days|week|weeks|month|months)\b/i);
+  if (everyN) {
+    const unit = /week/i.test(everyN[2]) ? 'weeks' : /month/i.test(everyN[2]) ? 'months' : 'days';
+    return { text: strip(text, /\bevery\s+\d{1,3}\s+(?:day|days|week|weeks|month|months)\b/i), repeat: { kind: 'custom', every: Math.max(1, Number(everyN[1])), unit } };
+  }
+  if (/\b(?:every\s+day|daily)\b/i.test(text)) return { text: strip(text, /\b(?:every\s+day|daily)\b/i), repeat: { kind: 'daily' } };
+  if (/\b(?:every\s+week|weekly)\b/i.test(text)) return { text: strip(text, /\b(?:every\s+week|weekly)\b/i), repeat: { kind: 'weekly', days: [] } };
+  if (/\b(?:every\s+month|monthly)\b/i.test(text)) return { text: strip(text, /\b(?:every\s+month|monthly)\b/i), repeat: { kind: 'monthly', day: 1 } };
+  return { text, repeat: { kind: 'none' } };
 }
 
 function parseDate(text: string, today: string): { text: string; dueDate: string | null } {
@@ -71,12 +99,11 @@ function parseDate(text: string, today: string): { text: string; dueDate: string
     return { text: strip(text, /\btoday\b|\btonight\b/i), dueDate: today };
   }
 
-  const wd = text.match(/\b(next\s+)?(sun|sunday|mon|monday|tue|tues|tuesday|wed|weds|wednesday|thu|thur|thurs|thursday|fri|friday|sat|saturday)\b/i);
+  const wd = text.match(new RegExp(`\\b(next\\s+)?(${WD})\\b`, 'i'));
   if (wd) {
-    const target = WEEKDAYS[wd[2].toLowerCase()];
-    const base = nextWeekday(today, target);
+    const base = nextWeekday(today, WEEKDAYS[wd[2].toLowerCase()]);
     const dueDate = wd[1] ? addDays(base, 7) : base; // "next friday" = the one after the coming friday
-    return { text: strip(text, /\b(?:next\s+)?(?:sun|sunday|mon|monday|tue|tues|tuesday|wed|weds|wednesday|thu|thur|thurs|thursday|fri|friday|sat|saturday)\b/i), dueDate };
+    return { text: strip(text, new RegExp(`\\b(?:next\\s+)?(?:${WD})\\b`, 'i')), dueDate };
   }
 
   return { text, dueDate: null };
@@ -103,10 +130,26 @@ export function parseQuickAdd(raw: string, today: string = localDate()): ParsedQ
     return match; // not a priority word — leave it in the title
   });
 
-  // Date phrase.
+  // Repeat first ("every monday" must not be read as the date "monday"), then time, then date.
+  const rep = parseRepeat(text);
+  text = rep.text;
+  let repeat = rep.repeat;
+  const timed = parseTime(text);
+  text = timed.text;
   const dated = parseDate(text, today);
   text = dated.text;
 
+  let dueDate = dated.dueDate;
+  // A repeating task needs a date to repeat from; a time alone means today.
+  if (repeat.kind !== 'none' && !dueDate) {
+    dueDate = repeat.kind === 'weekly' && repeat.days.length > 0 ? firstOccurrenceOnOrAfter(repeat, today) : today;
+  }
+  if (timed.time && !dueDate) dueDate = today;
+
+  // Fill in what the rule inherits from the date.
+  if (repeat.kind === 'weekly' && repeat.days.length === 0 && dueDate) repeat = { kind: 'weekly', days: [weekdayOf(dueDate)] };
+  if (repeat.kind === 'monthly' && dueDate) repeat = { kind: 'monthly', day: dayOfMonth(dueDate) };
+
   const title = text.replace(/\s+/g, ' ').trim();
-  return { title, dueDate: dated.dueDate, priority, tags: [...new Set(tags)] };
+  return { title, dueDate, dueTime: dueDate ? timed.time : null, priority, tags: [...new Set(tags)], repeat };
 }

@@ -146,7 +146,7 @@ export const ALL_DAYS: Weekday[] = [0, 1, 2, 3, 4, 5, 6];
 
 export interface Backup {
   app: 'yaad';
-  /** 3 added task fields; 4 added projects (lists). Older files still import. */
+  /** 3 added task fields; 4 added categories; 5 added task times, reminders, repeat rules and history. Older files still import. */
   version: number;
   exportedAt: number;
   reminders: Reminder[];
@@ -156,7 +156,7 @@ export interface Backup {
 
 /** A JSON-serialisable snapshot of every reminder, task and list, for "Export backup". */
 export function exportBackup(): Backup {
-  return { app: 'yaad', version: 4, exportedAt: Date.now(), reminders: snapshot(), tasks: tasksSnapshot(), projects: projectsSnapshot() };
+  return { app: 'yaad', version: 5, exportedAt: Date.now(), reminders: snapshot(), tasks: tasksSnapshot(), projects: projectsSnapshot() };
 }
 
 function isReminder(x: unknown): x is Reminder {

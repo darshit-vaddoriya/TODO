@@ -8,15 +8,16 @@
  * On visibility change (tab refocused) we tick immediately so a reminder that
  * came due while the tab was hidden pings as soon as you look.
  */
-import { localDate } from './format';
-import { ping, pingTask } from './notify';
-import { getPrefs } from './prefs';
+import { dueInPhrase, planAlerts, planSummary, type AlertSettings, type TaskAlert } from './alerts';
+import { setMeta } from './db';
+import { friendlyDate, formatClock, localDate } from './format';
+import { deliverTaskNotice, ping } from './notify';
+import { getPrefs, setPrefs, type Prefs } from './prefs';
 import { isDue } from './schedule';
 import { bump } from './stats';
 import { reload, saveMany, snapshot } from './store';
-import { taskDueNow } from './task-schedule';
-import { markTaskNotified, refreshDailyTasks, tasksSnapshot } from './tasks';
-import type { Reminder } from './types';
+import { getTask, pruneFiredAlerts, recordAlerts, snoozeTask, tasksSnapshot } from './tasks';
+import type { Reminder, Task } from './types';
 
 const TICK_MS = 20_000;
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -26,7 +27,99 @@ function rolledOver(r: Reminder, today: string): Reminder {
   return r.firedTodayDate === today ? r : { ...r, firedToday: 0, firedTodayDate: today };
 }
 
+/** The slice of preferences the pure alert planner needs. */
+export function alertSettings(p: Prefs = getPrefs()): AlertSettings {
+  return {
+    defaultReminderTime: p.defaultReminderTime,
+    quietEnabled: p.quietEnabled,
+    quietStart: p.quietStart,
+    quietEnd: p.quietEnd,
+    overdueReminders: p.overdueReminders,
+    dailySummary: p.dailySummary,
+    summaryTime: p.summaryTime,
+    summaryDate: p.summaryDate,
+  };
+}
+
+/** Overdue nudges beyond this many tasks collapse into one notification. */
+const MAX_INDIVIDUAL_OVERDUE = 3;
+
+function dueSuffix(task: Task): string {
+  return task.dueTime ? ` · ${formatClock(task.dueTime)}` : '';
+}
+
+function reminderNotice(task: Task, alert: TaskAlert) {
+  const body = alert.kind === 'snoozed' ? `Snoozed reminder${dueSuffix(task)}` : `Due ${dueInPhrase(alert.offsetMin)}${dueSuffix(task)}`;
+  return { title: `⏰ ${task.title}`, body, tag: `yaad-task-${task.id}`, taskId: task.id, onSnooze: () => void snoozeTask(task.id, getPrefs().snoozeMin) };
+}
+
+/** Deliver whatever is due for tasks: reminders, snooze wake-ups, overdue nudges and the morning summary. */
+async function tickTasks(now: number): Promise<void> {
+  const prefs = getPrefs();
+  const settings = alertSettings(prefs);
+  const plan = planAlerts(tasksSnapshot(), now, settings);
+
+  // Recalculate: forget delivered-alert keys that no longer match a live alert (the date or time changed).
+  for (const st of plan.stale) await pruneFiredAlerts(st.taskId, st.live);
+
+  // Do Not Disturb holds everything; what came due meanwhile shows up as "missed".
+  if (prefs.pausedUntil > now) return;
+  const today = localDate(new Date(now));
+
+  for (const alert of plan.fire) {
+    const task = getTask(alert.taskId);
+    if (!task || task.done) continue;
+    // Record first, so an alert can never be delivered twice even if delivery throws.
+    await recordAlerts(task.id, { fired: [alert.key], clearSnooze: alert.kind === 'snoozed' });
+    void deliverTaskNotice(reminderNotice(task, alert));
+  }
+
+  if (plan.overdue.length > MAX_INDIVIDUAL_OVERDUE) {
+    for (const task of plan.overdue) await recordAlerts(task.id, { overdueDate: today });
+    void deliverTaskNotice({ title: '📋 Overdue tasks', body: `${plan.overdue.length} tasks are overdue`, tag: 'yaad-overdue', taskId: null });
+  } else {
+    for (const task of plan.overdue) {
+      await recordAlerts(task.id, { overdueDate: today });
+      void deliverTaskNotice({
+        title: `📋 ${task.title}`,
+        body: `Overdue since ${friendlyDate(task.dueDate as string, today)}`,
+        tag: `yaad-task-${task.id}`,
+        taskId: task.id,
+        onSnooze: () => void snoozeTask(task.id, getPrefs().snoozeMin),
+      });
+    }
+  }
+
+  const summary = planSummary(tasksSnapshot(), now, settings);
+  if (summary.mark) {
+    setPrefs({ summaryDate: today });
+    if (summary.text) void deliverTaskNotice({ ...summary.text, tag: 'yaad-summary', taskId: null });
+  }
+}
+
+/**
+ * The single scheduler tick. Serialized (a tick that is still running is not
+ * re-entered) and, where the browser has Web Locks, exclusive across open tabs
+ * so two tabs can't both deliver the same alert.
+ */
+let busy = false;
 export async function tick(now = Date.now()): Promise<void> {
+  if (busy) return;
+  busy = true;
+  try {
+    if (navigator.locks) await navigator.locks.request('yaad-scheduler', { ifAvailable: true }, async (lock) => lock && (await runTick(now)));
+    else await runTick(now);
+  } finally {
+    busy = false;
+  }
+}
+
+async function runTick(now: number): Promise<void> {
+  await tickReminders(now);
+  await tickTasks(now);
+}
+
+async function tickReminders(now: number): Promise<void> {
   // Do Not Disturb: everything is muted, but let the date-roll reset below still run.
   const paused = getPrefs().pausedUntil > now;
   const today = localDate(new Date(now));
@@ -43,24 +136,11 @@ export async function tick(now = Date.now()): Promise<void> {
     }
   }
   if (updates.length > 0) await saveMany(updates);
-
-  // Keep daily to-do tasks reset across a midnight rollover while the app stays open.
-  void refreshDailyTasks();
-
-  // Due-date task notifications: one ping per task per day while the app is open.
-  if (!paused) {
-    const nowDate = new Date(now);
-    for (const task of tasksSnapshot()) {
-      if (taskDueNow(task, nowDate)) {
-        void pingTask(task, today);
-        void markTaskNotified(task.id, today);
-      }
-    }
-  }
 }
 
 export function startScheduler(): void {
   if (timer !== null) return;
+  mirrorAlertPrefs();
   // A first tick shortly after load catches anything already overdue.
   setTimeout(() => void tick(), 1500);
   timer = setInterval(() => void tick(), TICK_MS);
@@ -75,7 +155,18 @@ function onVisible() {
 }
 
 function onSwMessage(event: MessageEvent) {
-  if ((event.data as { type?: string })?.type === 'reminder-changed') void reload();
+  const data = event.data as { type?: string; path?: string } | undefined;
+  if (data?.type === 'reminder-changed') void reload();
+  // A notification button asked an open window to go somewhere (see public/sw-reminders.js).
+  else if (data?.type === 'navigate' && typeof data.path === 'string') location.hash = data.path.replace(/^\/#/, '#');
+}
+
+/**
+ * Mirror the one setting the service worker needs for its closed-app catch-up
+ * (the default reminder time) into IndexedDB, since the worker can't read localStorage.
+ */
+export function mirrorAlertPrefs(): void {
+  void setMeta('alertPrefs', { defaultReminderTime: getPrefs().defaultReminderTime });
 }
 
 export function stopScheduler(): void {
