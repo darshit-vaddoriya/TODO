@@ -39,7 +39,7 @@ export function MissedAlerts({ now }: { now: number }) {
   if (rows.length === 0) return null;
 
   return (
-    <section class="card mb-4 border border-haldi/40" aria-label="Missed reminders">
+    <section class="card mb-4 border border-haldi/50" aria-label="Missed reminders">
       <div class="flex items-center gap-2">
         <Icon name="bell-off" size={19} class="text-haldi" />
         <h2 class="min-w-0 flex-1 font-extrabold tracking-[-0.01em]">

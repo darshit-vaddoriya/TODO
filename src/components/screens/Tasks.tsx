@@ -35,7 +35,7 @@ import { useTaskComplete } from '../useTaskComplete';
 import { go, useProjects, useTasks } from '../router';
 import { Checkbox, Empty, Header, Icon, Meter, Page, ReorderList, Section, Segmented, SwipeRow } from '../ui';
 
-const PRIORITY_COLOR: Record<Priority, string> = { none: '', low: 'text-teal', medium: 'text-haldi', high: 'text-accent' };
+const PRIORITY_COLOR: Record<Priority, string> = { none: '', low: 'text-info', medium: 'text-haldi', high: 'text-accent' };
 const PRIORITY_LABEL: Record<Priority, string> = { none: 'No priority', low: 'Low priority', medium: 'Medium priority', high: 'High priority' };
 const PRIORITY_CHIPS: { value: Priority | null; label: string }[] = [
   { value: null, label: 'Any' },

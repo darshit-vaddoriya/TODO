@@ -23,6 +23,9 @@
   --color-on-teal: var(--on-teal);
   --color-positive: var(--positive);
   --color-haldi: var(--haldi);
+  --color-on-haldi: var(--on-haldi);
+  --color-info: var(--info);
+  --color-control: var(--control);
 
   --font-sans: "Manrope Variable", Manrope, system-ui, sans-serif;
   --font-mono: "Manrope Variable", Manrope, system-ui, sans-serif;
@@ -34,14 +37,17 @@
   --surface: #ffffff;
   --field: #e4e8e5;
   --ink: #0d1110;
-  --muted: #5f6b66;
+  --muted: #5f6a65;
   --rule: rgb(13 17 16 / 0.08);
-  --accent: #d13434; /* danger / delete */
+  --accent: #c42c2c; /* danger, overdue, high priority */
   --on-accent: #ffffff;
-  --teal: #0d8f74; /* brand: active toggles, progress, primary actions */
+  --teal: #0b755f; /* brand: actions, progress, links, selected states */
   --on-teal: #ffffff;
-  --positive: #18804a;
-  --haldi: #b26f00; /* "due now" / overdue warning accent */
+  --positive: #167745; /* success */
+  --haldi: #935c00; /* warning, medium priority */
+  --on-haldi: #ffffff;
+  --info: #2d6aac; /* low priority, neutral info */
+  --control: #808d88; /* outlines of unchecked boxes and switches (>= 3:1 on surfaces) */
   --lift: 0 1px 2px rgb(13 17 16 / 0.06), 0 1px 1px rgb(13 17 16 / 0.03); /* resting card shadow */
   /*
    * Declaring dark support stops Chrome's "dark theme for sites" (auto-dark) from
@@ -64,6 +70,9 @@
     --on-teal: #06120f;
     --positive: #52d79a;
     --haldi: #f7b955;
+    --on-haldi: #1a1203;
+    --info: #6aa8f0;
+    --control: #61706b;
     --lift: none;
     color-scheme: dark;
   }
@@ -82,6 +91,9 @@
   --on-teal: #06120f;
   --positive: #52d79a;
   --haldi: #f7b955;
+  --on-haldi: #1a1203;
+  --info: #6aa8f0;
+  --control: #61706b;
   --lift: none;
   color-scheme: dark;
 }

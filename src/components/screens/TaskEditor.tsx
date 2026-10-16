@@ -306,7 +306,7 @@ export function TaskEditor({ id, dateHint }: { id?: string; dateHint?: string })
               </>
             )}
             {notifyBlocked && (
-              <p class="flex gap-2 rounded-xl bg-field p-3 text-[0.8125rem] leading-snug text-haldi">
+              <p class="flex gap-2 rounded-xl bg-haldi/10 p-3 text-[0.8125rem] leading-snug text-haldi">
                 <Icon name="bell-off" size={17} class="mt-0.5 shrink-0" />
                 <span>
                   {notificationsSupported()

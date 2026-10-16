@@ -19,7 +19,7 @@ import { useTaskComplete } from '../useTaskComplete';
 import { go, useData, useNow, useTasks } from '../router';
 import { Checkbox, Empty, Header, Icon, Meter, Nudge, Page, ProgressRing, Section, Switch } from '../ui';
 
-const PRIORITY_COLOR: Record<Priority, string> = { none: '', low: 'text-teal', medium: 'text-haldi', high: 'text-accent' };
+const PRIORITY_COLOR: Record<Priority, string> = { none: '', low: 'text-info', medium: 'text-haldi', high: 'text-accent' };
 
 function greeting(now: number, name: string): string {
   const h = new Date(now).getHours();
@@ -184,7 +184,7 @@ export function Home() {
       />
       <Page>
         {dnd && (
-          <div class="card mb-4 flex items-center gap-3 border border-haldi/40">
+          <div class="card mb-4 flex items-center gap-3 border border-haldi/50">
             <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-field text-haldi">
               <Icon name="pause" size={19} />
             </span>

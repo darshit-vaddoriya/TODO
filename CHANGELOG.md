@@ -28,6 +28,15 @@ A UX pass: less chrome, clearer hierarchy, more feedback.
 - **Toasts** sit above the Add button and tab bar, are two lines (title + detail)
   and show at most two at a time.
 - Empty states have an icon and a clear next step.
+- **Colour theme tuned to WCAG AA.** An audit found the light theme failing in
+  many places (teal and amber text at 3.5–4.1:1, white-on-teal buttons at 4.0:1,
+  unchecked boxes at 2.1:1). Brand teal, amber, red and muted grey are each
+  darkened by the minimum needed, so all text and controls now pass in both
+  themes. Switches and checkboxes have a visible outline, priority flags use
+  distinct colours (high red, medium amber, low blue), the warning toast has
+  readable text, and the browser/status-bar colour follows the light or dark
+  scheme from the first paint. A unit test reads the tokens from the stylesheet
+  and fails if any pair drops below AA.
 
 ### Added
 - **Completion feedback**: the check pops, the row slides away, and a light

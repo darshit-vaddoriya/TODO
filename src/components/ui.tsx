@@ -179,7 +179,7 @@ export function Checkbox({ checked, onChange, label, popping, small }: { checked
     <button type="button" role="checkbox" aria-checked={checked} aria-label={label} class="-m-2 grid size-11 shrink-0 place-items-center" onClick={onChange}>
       <span
         class={`grid place-items-center rounded-full border-2 transition-colors ${small ? 'size-[22px]' : 'size-[26px]'} ${
-          checked ? 'border-teal bg-teal text-on-teal' : 'border-muted/50 text-transparent'
+          checked ? 'border-teal bg-teal text-on-teal' : 'border-control text-transparent'
         } ${popping ? 'check-pop' : ''}`}
       >
         <Icon name="check" size={small ? 13 : 16} />
@@ -257,7 +257,7 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
       role="switch"
       aria-checked={checked}
       aria-label={label}
-      class={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${checked ? 'bg-teal' : 'bg-field'}`}
+      class={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${checked ? 'bg-teal' : 'bg-control'}`}
       onClick={() => onChange(!checked)}
     >
       <span class={`inline-block size-5 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -590,7 +590,7 @@ export function Toasts() {
       {list.map((toast) => (
         <div
           key={toast.id}
-          class={`pointer-events-auto flex w-full max-w-md items-center gap-2 rounded-[18px] py-1 pl-4 pr-1.5 shadow-lg ${toast.tone === 'warn' ? 'bg-haldi text-[#0e0e10]' : 'bg-ink text-paper'}`}
+          class={`pointer-events-auto flex w-full max-w-md items-center gap-2 rounded-[18px] py-1 pl-4 pr-1.5 shadow-lg ${toast.tone === 'warn' ? 'bg-haldi text-on-haldi' : 'bg-ink text-paper'}`}
         >
           <p class="min-w-0 flex-1 py-1.5 leading-snug">
             <span class="block font-bold">{toast.message}</span>

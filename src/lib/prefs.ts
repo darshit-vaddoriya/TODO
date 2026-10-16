@@ -123,8 +123,13 @@ export function applyTheme(theme: Theme): void {
   const root = document.documentElement;
   if (theme === 'system') delete root.dataset.theme;
   else root.dataset.theme = theme;
+  // Two theme-color metas (light / dark) serve the system setting before any script runs. A forced
+  // theme sets both to that theme's paper colour; "system" puts each back to its own default.
   const paper = getComputedStyle(root).getPropertyValue('--paper').trim();
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', paper);
+  for (const meta of document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')) {
+    meta.dataset.default ??= meta.content;
+    meta.content = theme === 'system' ? meta.dataset.default : paper;
+  }
 }
 
 /** Apply the layout density to <html>; CSS reads `data-density`. */
