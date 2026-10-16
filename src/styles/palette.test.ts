@@ -44,7 +44,22 @@ describe.each([
   ['dark', dark],
 ] as const)('%s theme palette', (_name, t) => {
   it('declares every token', () => {
-    for (const k of ['paper', 'surface', 'field', 'ink', 'muted', 'teal', 'on-teal', 'accent', 'on-accent', 'haldi', 'on-haldi', 'info', 'positive', 'control']) {
+    for (const k of [
+      'paper',
+      'surface',
+      'field',
+      'ink',
+      'muted',
+      'teal',
+      'on-teal',
+      'accent',
+      'on-accent',
+      'haldi',
+      'on-haldi',
+      'info',
+      'positive',
+      'control',
+    ]) {
       expect(t[k], `--${k}`).toMatch(/^#[0-9a-f]{6}$/i);
     }
   });

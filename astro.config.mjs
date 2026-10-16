@@ -1,4 +1,5 @@
 // @ts-check
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import preact from '@astrojs/preact';
 import tailwindcss from '@tailwindcss/vite';
@@ -15,6 +16,7 @@ export default defineConfig({
   },
   vite: {
     plugins: [tailwindcss()],
+    resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
     build: {
       // Never turn fonts/images into data: URIs; keep everything as same-origin files.
       assetsInlineLimit: 0,
@@ -47,7 +49,12 @@ export default defineConfig({
         // Long-press the app icon for these. Hash routes open the matching screen.
         shortcuts: [
           { name: 'New reminder', short_name: 'New', url: '/#/edit', icons: [{ src: '/icons/shortcut-add.png', sizes: '96x96', type: 'image/png' }] },
-          { name: 'Wellness presets', short_name: 'Presets', url: '/#/presets', icons: [{ src: '/icons/shortcut-presets.png', sizes: '96x96', type: 'image/png' }] },
+          {
+            name: 'Wellness presets',
+            short_name: 'Presets',
+            url: '/#/presets',
+            icons: [{ src: '/icons/shortcut-presets.png', sizes: '96x96', type: 'image/png' }],
+          },
         ],
       },
       workbox: {
