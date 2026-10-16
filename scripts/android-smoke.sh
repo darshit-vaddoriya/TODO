@@ -31,7 +31,7 @@ try:
 except OSError:
     sys.exit()
 hits = []
-for m in re.finditer(r'<node[^>]*?(?:text|content-desc)="([^"]*)"[^>]*?bounds="\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]"', xml):
+for m in re.finditer(r'<node[^>]*?(?:text|content-desc)="([^"]*)"[^>]*?bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', xml):
     text = m.group(1).strip().lower()
     if want == text or want in text:
         x1, y1, x2, y2 = map(int, m.groups()[1:])
