@@ -5,6 +5,25 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
+## [2.4.4] — 2026-10-16
+
+### Fixed
+- **"Show now" (and the other tests) gave no sign when Android would not show a
+  notification.** The app now asks Android directly and says why: notifications are
+  turned off for Yaad, or the "Reminders" channel is switched off. That answer also
+  drives the red card on Home and the Settings check, so a blocked state is no longer
+  mistaken for "allowed".
+- The notification permission is requested at every start while it is still undecided
+  (it used to be asked once, so a dismissed dialog was never shown again).
+
+## [2.4.3] — 2026-10-16
+
+### Added
+- **Home warns when reminders cannot ring** (Android app): a red card when notifications
+  are off or blocked, with an "Allow notifications" / "Open settings" button, and an amber
+  card when the phone's battery saving may hold alarms back, with a "Change" button.
+  Before, the only sign was that nothing happened. Nothing shows when all is well.
+
 ## [2.4.2] — 2026-10-16
 
 ### Fixed

@@ -81,8 +81,11 @@ public class YaadWidgetPlugin extends Plugin {
     @PluginMethod
     public void showNow(PluginCall call) {
         try {
+            JSObject result = new JSObject();
+            String blocked = NotifyHelper.blockedReason(getContext());
+            result.put("blocked", blocked == null ? "" : blocked);
             NotifyHelper.post(getContext(), call.getData());
-            call.resolve();
+            call.resolve(result);
         } catch (RuntimeException e) {
             call.reject("Could not show the notification: " + e.getMessage());
         }
@@ -99,6 +102,7 @@ public class YaadWidgetPlugin extends Plugin {
             item.put("title", "\uD83D\uDD14 Yaad test");
             item.put("taskId", JSONObject.NULL);
             item.put("actions", false);
+            String blocked = NotifyHelper.blockedReason(context);
             if (seconds <= 0) {
                 item.put("body", "Notifications work.");
                 NotifyHelper.post(context, item);
@@ -108,7 +112,9 @@ public class YaadWidgetPlugin extends Plugin {
                 AlarmStore.add(context, item);
                 AlarmScheduler.arm(context);
             }
-            call.resolve(alarmState(context));
+            JSObject state = alarmState(context);
+            state.put("blocked", blocked == null ? "" : blocked);
+            call.resolve(state);
         } catch (JSONException | RuntimeException e) {
             call.reject("Could not set the test: " + e.getMessage());
         }
@@ -124,6 +130,8 @@ public class YaadWidgetPlugin extends Plugin {
         JSObject state = new JSObject();
         state.put("count", AlarmStore.count(context));
         state.put("nextAt", AlarmStore.nextAt(context));
+        String blocked = NotifyHelper.blockedReason(context);
+        state.put("blocked", blocked == null ? "" : blocked);
         return state;
     }
 }

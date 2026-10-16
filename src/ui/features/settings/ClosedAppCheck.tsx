@@ -51,8 +51,10 @@ export function ClosedAppCheck() {
 
   const test = async (seconds: number) => {
     const error = await scheduleTest(seconds);
-    if (error) toast('Test failed', { detail: error, tone: 'warn', duration: 9000 });
+    if (error) toast('It would not show', { detail: error, tone: 'warn', duration: 10000 });
     else if (seconds > 0) toast('Test set for 1 minute from now', { detail: 'Close Yaad now (swipe it away) and wait.', duration: 8000 });
+    else
+      toast('Test notification sent', { detail: 'Pull down the notification shade. If it is not there, check Yaad’s notification settings.', duration: 8000 });
     refresh();
   };
 
@@ -66,7 +68,9 @@ export function ClosedAppCheck() {
         <Row
           ok={s.permission === 'granted'}
           title="Notifications"
-          detail={s.permission === 'granted' ? 'Allowed' : s.permission === 'denied' ? 'Blocked — turn them on in phone settings' : 'Not allowed yet'}
+          detail={
+            s.blocked || (s.permission === 'granted' ? 'Allowed' : s.permission === 'denied' ? 'Blocked — turn them on in phone settings' : 'Not allowed yet')
+          }
           action={
             s.permission === 'granted'
               ? undefined

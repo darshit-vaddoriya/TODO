@@ -19,9 +19,10 @@ interface YaadNativePlugin {
   batteryStatus(): Promise<{ unrestricted: boolean }>;
   /** Replace the alerts the phone will ring (even with the app closed) and arm the next alarm. */
   schedulePlan(plan: { items: PlannedAlert[] }): Promise<{ count: number; nextAt: number }>;
-  showNow(item: Omit<PlannedAlert, 'at'>): Promise<void>;
-  scheduleTest(options: { seconds: number }): Promise<{ count: number; nextAt: number }>;
-  alarmStatus(): Promise<{ count: number; nextAt: number }>;
+  /** `blocked` is a plain-language reason when Android would not show it (empty when it can). */
+  showNow(item: Omit<PlannedAlert, 'at'>): Promise<{ blocked: string }>;
+  scheduleTest(options: { seconds: number }): Promise<{ count: number; nextAt: number; blocked: string }>;
+  alarmStatus(): Promise<{ count: number; nextAt: number; blocked: string }>;
 }
 
 export interface PlannedAlert {

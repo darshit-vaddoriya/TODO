@@ -60,6 +60,8 @@ export interface NativeStatus {
   nextAt: number | null;
   /** The last failure while scheduling or showing, if any. */
   error: string;
+  /** Why Android would not show a notification right now (empty when it can). */
+  blocked: string;
 }
 
 /** Everything that decides whether a reminder rings while Yaad is closed, for the Settings check. */
@@ -79,14 +81,18 @@ export async function nativeStatus(): Promise<NativeStatus> {
   }
   let pending = 0;
   let nextAt: number | null = null;
+  let blocked = '';
   try {
     const state = await Native.alarmStatus();
     pending = state.count;
     nextAt = state.nextAt > Date.now() ? state.nextAt : null;
+    // Android's own answer wins: notifications (or the Reminders channel) may be off even when the plugin says "granted".
+    blocked = state.blocked ?? '';
+    if (blocked) perm = 'denied';
   } catch (err) {
     remember('status', err);
   }
-  return { permission: perm, batteryUnrestricted, pending, nextAt, error: lastError };
+  return { permission: perm, batteryUnrestricted, pending, nextAt, error: lastError, blocked };
 }
 
 /**
@@ -94,9 +100,12 @@ export async function nativeStatus(): Promise<NativeStatus> {
  * from now, to prove an alarm rings with the app closed. Resolves to an error message, or ''.
  */
 export async function scheduleTest(seconds = 60): Promise<string> {
-  if (cachedPermission === 'denied') return 'Notifications are blocked. Turn them on in phone settings.';
   try {
-    await Native.scheduleTest({ seconds });
+    const result = await Native.scheduleTest({ seconds });
+    if (result.blocked) {
+      cachedPermission = 'denied';
+      return result.blocked;
+    }
     return '';
   } catch (err) {
     remember('test', err);
@@ -213,8 +222,9 @@ export async function startNativeNotifications(): Promise<void> {
   if (!nativeAvailable()) return;
   try {
     cachedPermission = fromPlugin((await LocalNotifications.checkPermissions()).display);
-    // First run on Android 13+: nothing can show until this is allowed, so ask once, up front.
-    if (cachedPermission === 'default' && !getPrefs().notifyAsked) {
+    // Android 13+ shows nothing until this is allowed, so ask at every start while it is still undecided
+    // (Android stops showing the dialog itself once it has been refused twice).
+    if (cachedPermission === 'default') {
       setPrefs({ notifyAsked: true });
       await nativeRequestPermission();
     }
