@@ -45,7 +45,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: yaad-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/yaad-*-debug.apk
 
   # Boots an emulator, installs the APK and checks it launches without crashing and that a
   # stored alert really rings while the app is closed. Reports only (does not block a merge)
@@ -73,7 +73,7 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
-          script: bash scripts/android-smoke.sh apk/app-debug.apk smoke
+          script: bash scripts/android-smoke.sh "$(ls apk/*.apk | head -1)" smoke
       - uses: actions/upload-artifact@v4
         if: always()
         with:

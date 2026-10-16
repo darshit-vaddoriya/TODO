@@ -64,18 +64,28 @@ public class YaadWidgetPlugin extends Plugin {
     /** Replace the planned alerts and arm the alarm for the earliest one. */
     @PluginMethod
     public void schedulePlan(PluginCall call) {
-        JSArray items = call.getArray("items");
-        Context context = getContext();
-        AlarmStore.replace(context, items == null ? new JSArray() : items);
-        AlarmScheduler.arm(context);
-        call.resolve(alarmState(context));
+        try {
+            JSArray items = call.getArray("items");
+            Context context = getContext();
+            AlarmStore.replace(context, items == null ? new JSArray() : items);
+            boolean exact = AlarmScheduler.arm(context);
+            JSObject state = alarmState(context);
+            state.put("exact", exact);
+            call.resolve(state);
+        } catch (RuntimeException e) {
+            call.reject("Could not schedule reminders: " + e.getMessage());
+        }
     }
 
     /** Show a notification right now. */
     @PluginMethod
     public void showNow(PluginCall call) {
-        NotifyHelper.post(getContext(), call.getData());
-        call.resolve();
+        try {
+            NotifyHelper.post(getContext(), call.getData());
+            call.resolve();
+        } catch (RuntimeException e) {
+            call.reject("Could not show the notification: " + e.getMessage());
+        }
     }
 
     /** A test alert: now (seconds = 0) or after `seconds`, ringing even if the app is closed. */
@@ -99,8 +109,8 @@ public class YaadWidgetPlugin extends Plugin {
                 AlarmScheduler.arm(context);
             }
             call.resolve(alarmState(context));
-        } catch (JSONException e) {
-            call.reject("Could not set the test");
+        } catch (JSONException | RuntimeException e) {
+            call.reject("Could not set the test: " + e.getMessage());
         }
     }
 

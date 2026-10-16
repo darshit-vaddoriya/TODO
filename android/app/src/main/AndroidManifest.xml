@@ -68,4 +68,9 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Android refuses ALL exact alarms (the alarm-clock kind too) without one of these, and the
+         app crashed on "Drink water" because they had been removed. USE_EXACT_ALARM is granted
+         automatically on Android 13+; on 12 the user can allow SCHEDULE_EXACT_ALARM. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 </manifest>
