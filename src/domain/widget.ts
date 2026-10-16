@@ -34,7 +34,7 @@ export function widgetSummary(tasks: Task[], reminders: Reminder[], today: strin
   const overdue = tabTasks(tasks, 'overdue', today);
   const due = tabTasks(tasks, 'today', today);
   const ordered = [...overdue, ...due].sort(
-    (a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? '') || (a.dueTime ?? '').localeCompare(b.dueTime ?? '') || a.order - b.order,
+    (a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? '') || (a.dueTime ?? '24:00').localeCompare(b.dueTime ?? '24:00') || a.order - b.order,
   );
   return {
     date: today,

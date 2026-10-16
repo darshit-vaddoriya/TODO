@@ -89,6 +89,24 @@ describe.each([
   });
 });
 
+/** White text on the Home hero gradient, including the translucent chips drawn over it. */
+describe.each([
+  ['light', light],
+  ['dark', dark],
+] as const)('%s hero gradient', (_name, t) => {
+  const over = (alpha: number, base: string) => {
+    const mix = (shift: number) => Math.round(255 * alpha + ((parseInt(base.slice(1), 16) >> shift) & 255) * (1 - alpha));
+    return `#${[16, 8, 0].map((sh) => mix(sh).toString(16).padStart(2, '0')).join('')}`;
+  };
+  it.each(['hero-from', 'hero-to'])('white text is readable on --%s and on a chip over it', (k) => {
+    expect(contrast('#ffffff', t[k])).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(contrast('#ffffff', over(0.14, t[k]))).toBeGreaterThanOrEqual(AA_TEXT);
+  });
+  it('the amber ring is visible on the gradient', () => {
+    expect(contrast('#ffd479', t['hero-from'])).toBeGreaterThanOrEqual(AA_UI);
+  });
+});
+
 describe('theme blocks', () => {
   it('the system-dark block matches the explicit dark theme', () => {
     expect(darkMedia).toEqual(dark);

@@ -5,6 +5,20 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
+## [2.3.0] — 2026-10-16
+
+### Changed
+- **Home is redesigned.** A brand-gradient hero card carries the greeting and date,
+  the progress rings, a plain headline ("2 tasks to go"), the next task with its
+  time, and chips for overdue tasks, habit progress and the next reminder ping. The
+  top bar is now just "Yaad" with Pause and Settings.
+- A first-run Home shows a welcome card and a short "Get started" list instead of
+  an empty screen.
+- Overdue tasks get a red edge, reminder tiles a tinted emoji badge.
+- "Next up" lists (Home and the Android widget) put tasks with a time ahead of
+  all-day ones, in time order.
+- The hero's white text and chips are contrast-checked in both themes.
+
 ## [2.2.0] — 2026-10-16
 
 ### Changed

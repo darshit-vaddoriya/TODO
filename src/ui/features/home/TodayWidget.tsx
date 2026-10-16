@@ -1,77 +1,123 @@
 /**
- * The "Today" widget at the top of Home: concentric rings for tasks done and
- * habits (repeating reminders) acknowledged, with the numbers beside them and a
- * way into the overdue list. Everything it shows comes from the stores, so it
- * updates as you tick things off.
+ * The summary at the top of Home: a gradient hero with the greeting, concentric
+ * rings for tasks done and habits (repeating reminders) acknowledged, a plain
+ * headline, and what's next. Everything comes from the stores, so it updates as
+ * things are ticked off. With nothing set up yet it turns into a welcome card.
  */
+import { untilPhrase } from '@/domain/dates';
 import { habitProgress } from '@/domain/interval-schedule';
 import { dayProgress, tabTasks } from '@/domain/task-view';
 import type { Reminder, Task } from '@/domain/types';
+import { formatClock } from '@/data/display';
 import { ConcentricRings, Icon } from '@/ui/components';
 
-export function TodayWidget({ tasks, reminders, today }: { tasks: Task[]; reminders: Reminder[]; today: string }) {
+const AMBER = '#ffd479';
+const RING_TRACK = 'rgb(255 255 255 / 0.22)';
+
+export interface HeroProps {
+  tasks: Task[];
+  reminders: Reminder[];
+  today: string;
+  now: number;
+  greeting: string;
+  dateLine: string;
+  /** The soonest repeating-reminder ping, if any. */
+  nextPing: { title: string; emoji: string; at: number } | null;
+  paused: boolean;
+}
+
+function Welcome({ greeting, dateLine }: Pick<HeroProps, 'greeting' | 'dateLine'>) {
+  return (
+    <section class="hero" aria-label="Welcome">
+      <p class="text-[0.8125rem] font-semibold opacity-90">{dateLine}</p>
+      <h2 class="text-[1.5rem] font-extrabold leading-tight tracking-[-0.02em]">{greeting}</h2>
+      <p class="mt-2 max-w-[22rem] text-[0.9375rem] leading-snug opacity-95">
+        Plan your day, and let gentle reminders do the remembering — water, eyes, posture and your own tasks.
+      </p>
+      <div class="mt-4 flex flex-wrap gap-2.5">
+        <a href="#/task/new" class="hero-btn">
+          <Icon name="plus" size={18} /> Add a task
+        </a>
+        <a href="#/presets" class="hero-btn hero-btn-quiet">
+          <Icon name="sparkles" size={18} /> Presets
+        </a>
+      </div>
+    </section>
+  );
+}
+
+export function TodayWidget({ tasks, reminders, today, now, greeting, dateLine, nextPing, paused }: HeroProps) {
+  if (tasks.length === 0 && reminders.length === 0) return <Welcome greeting={greeting} dateLine={dateLine} />;
+
   const progress = dayProgress(tasks, today);
   const habits = habitProgress(reminders, today);
   const overdue = tabTasks(tasks, 'overdue', today).length;
   const left = progress.total - progress.done;
+  const next = [...tabTasks(tasks, 'overdue', today), ...tabTasks(tasks, 'today', today)].sort(
+    (a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? '') || (a.dueTime ?? '24:00').localeCompare(b.dueTime ?? '24:00') || a.order - b.order,
+  )[0];
 
-  const headline = progress.total === 0 ? 'Nothing planned' : left <= 0 ? 'All done 🎉' : `${left} ${left === 1 ? 'task' : 'tasks'} to go`;
+  const headline = progress.total === 0 ? 'Nothing planned today' : left <= 0 ? 'All done for today 🎉' : `${left} ${left === 1 ? 'task' : 'tasks'} to go`;
   const rings = [
-    { done: progress.done, total: progress.total, color: 'var(--brand)' },
-    ...(habits.target > 0 ? [{ done: habits.done, total: habits.target, color: 'var(--info)' }] : []),
+    { done: progress.done, total: progress.total, color: '#ffffff' },
+    ...(habits.target > 0 ? [{ done: habits.done, total: habits.target, color: AMBER }] : []),
   ];
   const summary = `${progress.done} of ${progress.total} tasks done${habits.target > 0 ? `, ${habits.done} of ${habits.target} habits` : ''}`;
 
   return (
-    <section class="card" aria-label="Today">
-      <div class="flex items-center gap-4">
-        <ConcentricRings rings={rings} label={summary}>
+    <section class="hero" aria-label="Today">
+      <p class="text-[0.8125rem] font-semibold opacity-90">{dateLine}</p>
+      <h2 class="truncate text-[1.375rem] font-extrabold leading-tight tracking-[-0.02em]">{greeting}</h2>
+
+      <div class="mt-3.5 flex items-center gap-4">
+        <ConcentricRings rings={rings} size={104} label={summary} track={RING_TRACK}>
           <span>
-            <span class="display tnum block text-[1.5rem] leading-none">
+            <span class="display tnum block text-[1.5rem] font-extrabold leading-none">
               {progress.done}
-              <span class="text-[0.875rem] font-bold text-muted">/{progress.total}</span>
+              <span class="text-[0.875rem] font-bold opacity-80">/{progress.total}</span>
             </span>
-            <span class="mt-0.5 block text-[0.625rem] font-bold uppercase tracking-wide text-muted">tasks</span>
+            <span class="mt-0.5 block text-[0.625rem] font-bold uppercase tracking-wide opacity-80">tasks</span>
           </span>
         </ConcentricRings>
 
         <div class="min-w-0 flex-1">
-          <div class="flex items-center justify-between gap-2">
-            <p class="text-[0.75rem] font-bold uppercase tracking-wide text-muted">Today</p>
-            <a href="#/tasks/today" class="flex items-center gap-0.5 text-[0.8125rem] font-bold text-brand">
-              Open <Icon name="back" size={14} class="rotate-180" />
-            </a>
-          </div>
-          <p class="text-[1.125rem] font-extrabold leading-snug tracking-[-0.01em]">{headline}</p>
-
-          <ul class="mt-2 space-y-1 text-[0.875rem] font-semibold">
-            <li class="flex items-center gap-2">
-              <span class="size-2.5 shrink-0 rounded-full bg-brand" aria-hidden="true" />
-              Tasks
-              <span class="tnum ml-auto text-muted">
-                {progress.done} of {progress.total}
+          <p class="text-[1.1875rem] font-extrabold leading-snug tracking-[-0.01em]">{headline}</p>
+          {next ? (
+            <a href={`#/task/${next.id}`} class="mt-1 flex items-center gap-1.5 text-[0.875rem] font-semibold opacity-95">
+              <Icon name="clock" size={15} />
+              <span class="min-w-0 truncate">
+                {next.dueTime ? `${formatClock(next.dueTime)} · ` : ''}
+                {next.title}
               </span>
-            </li>
-            {habits.target > 0 && (
-              <li class="flex items-center gap-2">
-                <span class="size-2.5 shrink-0 rounded-full bg-info" aria-hidden="true" />
-                Habits
-                <span class="tnum ml-auto text-muted">
-                  {habits.done} of {habits.target}
-                </span>
-              </li>
-            )}
-            {overdue > 0 && (
-              <li>
-                <a href="#/tasks/overdue" class="flex items-center gap-2 font-bold text-accent">
-                  <Icon name="alert" size={14} />
-                  {overdue} overdue
-                  <Icon name="back" size={14} class="ml-auto rotate-180" />
-                </a>
-              </li>
-            )}
-          </ul>
+            </a>
+          ) : (
+            <p class="mt-1 text-[0.875rem] font-semibold opacity-90">{progress.total === 0 ? 'Add a task to get started.' : 'Enjoy the free time.'}</p>
+          )}
         </div>
+      </div>
+
+      <div class="mt-3.5 flex flex-wrap gap-2">
+        {overdue > 0 && (
+          <a href="#/tasks/overdue" class="hero-chip">
+            <Icon name="alert" size={14} /> {overdue} overdue
+          </a>
+        )}
+        {habits.target > 0 && (
+          <span class="hero-chip">
+            <span class="size-2 rounded-full bg-[#ffd479]" aria-hidden="true" /> Habits {habits.done}/{habits.target}
+          </span>
+        )}
+        {paused ? (
+          <span class="hero-chip">
+            <Icon name="pause" size={14} /> Reminders paused
+          </span>
+        ) : (
+          nextPing && (
+            <span class="hero-chip">
+              <span aria-hidden="true">{nextPing.emoji}</span> {nextPing.title} {untilPhrase(nextPing.at - now)}
+            </span>
+          )
+        )}
       </div>
     </section>
   );
