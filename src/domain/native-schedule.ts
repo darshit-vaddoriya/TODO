@@ -38,7 +38,15 @@ function audible(at: number, pausedUntil: number, s: AlertSettings): number {
   return t;
 }
 
-export function planScheduled(tasks: Task[], reminders: Reminder[], now: number, s: AlertSettings, pausedUntil = 0): ScheduledNotice[] {
+export function planScheduled(
+  tasks: Task[],
+  reminders: Reminder[],
+  now: number,
+  s: AlertSettings,
+  pausedUntil = 0,
+  /** Pings due within this long are left out (the running app handles them); pass a large negative number to keep them. */
+  immediateMs = IMMEDIATE_MS,
+): ScheduledNotice[] {
   const out: ScheduledNotice[] = [];
 
   for (const task of tasks) {
@@ -70,11 +78,32 @@ export function planScheduled(tasks: Task[], reminders: Reminder[], now: number,
       const at = audible(due, pausedUntil, s);
       if (at > now + HABIT_HORIZON_MS) break;
       // Already due: the running app pings it. Scheduling "now" would also make the plan change on every check.
-      if (at > now + IMMEDIATE_MS) out.push({ key: `habit:${r.id}:${at}`, kind: 'habit', at, taskId: null, reminderId: r.id, offsetMin: 0 });
+      if (at > now + immediateMs) out.push({ key: `habit:${r.id}:${at}`, kind: 'habit', at, taskId: null, reminderId: r.id, offsetMin: 0 });
       cursor = { ...r, lastFiredAt: at, snoozedUntil: undefined };
       from = at;
     }
   }
 
   return out.sort((a, b) => a.at - b.at).slice(0, MAX_SCHEDULED);
+}
+
+export interface NextUp {
+  /** When it rings, epoch ms. */
+  at: number;
+  title: string;
+  emoji: string;
+  kind: ScheduledKind;
+}
+
+/** The soonest thing that will ring, with a name to show — for the live "next alert" countdown. */
+export function nextUp(tasks: Task[], reminders: Reminder[], now: number, s: AlertSettings, pausedUntil = 0): NextUp | null {
+  // Keep pings that are due this very second so the countdown reaches 00:00 instead of skipping ahead.
+  const first = planScheduled(tasks, reminders, now, s, pausedUntil, -Infinity)[0];
+  if (!first) return null;
+  if (first.kind === 'habit') {
+    const r = reminders.find((x) => x.id === first.reminderId);
+    return r ? { at: first.at, title: r.title, emoji: r.emoji, kind: first.kind } : null;
+  }
+  const task = tasks.find((x) => x.id === first.taskId);
+  return task ? { at: first.at, title: task.title, emoji: '⏰', kind: first.kind } : null;
 }

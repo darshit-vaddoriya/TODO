@@ -24,6 +24,13 @@ export function nativeAvailable(): boolean {
   return Capacitor.getPlatform() === 'android';
 }
 
+/** The last thing that went wrong talking to the phone, shown in Settings so a silent failure can be seen. */
+let lastError = '';
+function remember(step: string, err: unknown): void {
+  lastError = `${step}: ${err instanceof Error ? err.message : String(err)}`;
+}
+export const nativeLastError = (): string => lastError;
+
 type Permission = 'granted' | 'denied' | 'default';
 let cachedPermission: Permission = 'default';
 
@@ -82,6 +89,8 @@ export interface NativeStatus {
   /** How many alerts the phone currently has scheduled, and when the first one rings. */
   pending: number;
   nextAt: number | null;
+  /** The last failure while scheduling or showing, if any. */
+  error: string;
 }
 
 /** Everything that decides whether a reminder rings while Yaad is closed, for the Settings check. */
@@ -109,22 +118,28 @@ export async function nativeStatus(): Promise<NativeStatus> {
   } catch {
     // leave zero
   }
-  return { permission: perm, exact: await exactAlarmsAllowed(), batteryUnrestricted, pending, nextAt };
+  return { permission: perm, exact: await exactAlarmsAllowed(), batteryUnrestricted, pending, nextAt, error: lastError };
 }
 
-/** Schedule one notification `seconds` from now, to prove closed-app delivery end to end. */
-export async function scheduleTest(seconds = 60): Promise<boolean> {
-  if (cachedPermission !== 'granted') return false;
+/**
+ * Post a test notification: right now (`seconds` = 0) to check it can show at all, or
+ * `seconds` from now to prove an alarm rings with the app closed. Resolves to an error
+ * message, or '' on success.
+ */
+export async function scheduleTest(seconds = 60): Promise<string> {
+  if (cachedPermission !== 'granted') return 'Notifications are not allowed yet.';
   try {
-    const at = Date.now() + seconds * 1000;
-    await LocalNotifications.schedule({
-      notifications: [
-        build(idFor(TEST_KEY), { title: '🔔 Yaad test', body: 'This rang while Yaad was closed. Reminders will reach you.', tag: TEST_KEY, taskId: null }, at),
-      ],
-    });
-    return true;
-  } catch {
-    return false;
+    const notice = {
+      title: '🔔 Yaad test',
+      body: seconds > 0 ? 'This rang while Yaad was closed. Reminders will reach you.' : 'Notifications work.',
+      tag: TEST_KEY,
+      taskId: null,
+    };
+    await LocalNotifications.schedule({ notifications: [build(idFor(TEST_KEY), notice, seconds > 0 ? Date.now() + seconds * 1000 : undefined)] });
+    return '';
+  } catch (err) {
+    remember('test', err);
+    return err instanceof Error ? err.message : String(err);
   }
 }
 
@@ -152,8 +167,8 @@ export async function nativeShow(notice: NativeNotice): Promise<void> {
   if (cachedPermission !== 'granted') return;
   try {
     await LocalNotifications.schedule({ notifications: [build(idFor(notice.tag), notice)] });
-  } catch {
-    // The in-app alert still showed.
+  } catch (err) {
+    remember('show', err); // the in-app alert still showed
   }
 }
 
@@ -211,7 +226,9 @@ export async function syncScheduled(): Promise<void> {
     if (mine.length) await LocalNotifications.cancel({ notifications: mine.map((n) => ({ id: n.id })) });
     if (notifications.length) await LocalNotifications.schedule({ notifications });
     lastPlan = signature;
-  } catch {
+    lastError = '';
+  } catch (err) {
+    remember('schedule', err);
     lastPlan = ''; // try again on the next change
   } finally {
     syncing = false;
@@ -221,17 +238,28 @@ export async function syncScheduled(): Promise<void> {
 /** Channel, action buttons, tap routing, permission state, and keeping the schedule current. */
 export async function startNativeNotifications(): Promise<void> {
   if (!nativeAvailable()) return;
-  try {
-    await LocalNotifications.createChannel({
+  // Each step stands alone: one failing (say, the action buttons) must not stop alarms from being scheduled.
+  const step = async (name: string, fn: () => Promise<unknown>) => {
+    try {
+      await fn();
+    } catch (err) {
+      remember(name, err);
+    }
+  };
+  const prefs = getPrefs();
+
+  await step('channel', () =>
+    LocalNotifications.createChannel({
       id: CHANNEL,
       name: 'Reminders',
       description: 'Task and habit reminders',
       importance: 4,
       visibility: 1,
       vibration: true,
-    });
-    const prefs = getPrefs();
-    await LocalNotifications.registerActionTypes({
+    }),
+  );
+  await step('actions', () =>
+    LocalNotifications.registerActionTypes({
       types: [
         {
           id: ACTIONS,
@@ -241,21 +269,24 @@ export async function startNativeNotifications(): Promise<void> {
           ],
         },
       ],
-    });
-    await LocalNotifications.addListener('localNotificationActionPerformed', ({ actionId, notification }) => {
+    }),
+  );
+  await step('tap', () =>
+    LocalNotifications.addListener('localNotificationActionPerformed', ({ actionId, notification }) => {
       const taskId = (notification.extra as { taskId?: string | null } | undefined)?.taskId;
       if (!taskId) return;
       location.hash = actionId === 'snooze' || actionId === 'done' ? `#/act/${actionId}/${taskId}` : `#/task/${taskId}`;
-    });
+    }),
+  );
+  await step('permission', async () => {
     cachedPermission = fromPlugin((await LocalNotifications.checkPermissions()).display);
     // First run on Android 13+: nothing can ring until this is allowed, so ask once, up front.
     if (cachedPermission === 'default' && !prefs.notifyAsked) {
       setPrefs({ notifyAsked: true });
       await nativeRequestPermission();
     }
-  } catch {
-    return;
-  }
+  });
+
   void syncScheduled();
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;

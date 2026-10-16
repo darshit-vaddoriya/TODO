@@ -246,16 +246,7 @@ export function Home() {
         <MissedAlerts now={now} />
 
         <Section>
-          <TodayWidget
-            tasks={tasks}
-            reminders={reminders}
-            today={today}
-            now={now}
-            greeting={greeting(now, getPrefs().name)}
-            dateLine={longDate(now)}
-            nextPing={upcoming ? { title: upcoming.r.title, emoji: upcoming.r.emoji, at: upcoming.at } : null}
-            paused={dnd}
-          />
+          <TodayWidget tasks={tasks} reminders={reminders} today={today} greeting={greeting(now, getPrefs().name)} dateLine={longDate(now)} paused={dnd} />
         </Section>
 
         {focus.length > 0 && (

@@ -5,6 +5,24 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
+## [2.3.2] — 2026-10-16
+
+### Added
+- **Live "Next alert" on Home**: what rings next (task alert or repeating reminder),
+  a countdown to the second (04:32, 1:04:32), and the exact clock time with
+  seconds. Quiet hours, snoozes and Do Not Disturb are applied, so it matches when
+  the phone is actually told to ring.
+- Settings check (Android) now also has **Show now** (an instant test, to see
+  whether notifications can appear at all) and shows **the last problem** the
+  phone reported, instead of failing silently.
+
+### Fixed
+- Android: setting up notifications was one block; if any step failed (the channel
+  or the Snooze/Done buttons) nothing was ever scheduled. Each step is now
+  independent, so alarms are scheduled even if another step fails.
+- The in-app scheduler now sleeps until the next reminder is due (at most 20 s)
+  instead of checking on a fixed 20 s beat, so reminders fire on their second.
+
 ## [2.3.1] — 2026-10-16
 
 ### Added

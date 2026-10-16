@@ -4,7 +4,6 @@
  * actually scheduled — each with a fix button, plus a one-minute test.
  */
 import { useEffect, useState } from 'preact/hooks';
-import { formatTimeOfDay } from '@/data/display';
 import {
   nativeRequestPermission,
   nativeStatus,
@@ -51,11 +50,11 @@ export function ClosedAppCheck() {
   const refresh = () => void nativeStatus().then(setS);
   const allGood = s.permission === 'granted' && s.exact && s.batteryUnrestricted;
 
-  const test = async () => {
-    if (await scheduleTest(60)) {
-      toast('Test set for 1 minute from now', { detail: 'Close Yaad now (swipe it away) and wait.', duration: 8000 });
-      refresh();
-    } else toast('Allow notifications first.', { tone: 'warn' });
+  const test = async (seconds: number) => {
+    const error = await scheduleTest(seconds);
+    if (error) toast('Test failed', { detail: error, tone: 'warn', duration: 9000 });
+    else if (seconds > 0) toast('Test set for 1 minute from now', { detail: 'Close Yaad now (swipe it away) and wait.', duration: 8000 });
+    refresh();
   };
 
   return (
@@ -92,14 +91,24 @@ export function ClosedAppCheck() {
           title="Scheduled"
           detail={
             s.pending > 0
-              ? `${s.pending} upcoming${s.nextAt ? ` · next at ${formatTimeOfDay(new Date(s.nextAt))}` : ''}`
+              ? `${s.pending} upcoming${s.nextAt ? ` · next at ${new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit' }).format(new Date(s.nextAt))}` : ''}`
               : 'Nothing yet — add a reminder to a task with a date, or a repeating reminder.'
           }
         />
       </div>
-      <button type="button" class="btn btn-quiet mt-2 w-full" onClick={() => void test()}>
-        <Icon name="bell" size={18} /> Test: ring in 1 minute
-      </button>
+      {s.error && (
+        <p class="mt-2 rounded-xl bg-accent/10 px-3 py-2 text-[0.8125rem] leading-snug text-accent" role="alert">
+          <b>Last problem:</b> {s.error}
+        </p>
+      )}
+      <div class="mt-2 grid grid-cols-2 gap-2">
+        <button type="button" class="btn btn-quiet" onClick={() => void test(0)}>
+          <Icon name="bell" size={18} /> Show now
+        </button>
+        <button type="button" class="btn btn-quiet" onClick={() => void test(60)}>
+          <Icon name="clock" size={18} /> Ring in 1 min
+        </button>
+      </div>
     </div>
   );
 }

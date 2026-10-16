@@ -4,12 +4,12 @@
  * headline, and what's next. Everything comes from the stores, so it updates as
  * things are ticked off. With nothing set up yet it turns into a welcome card.
  */
-import { untilPhrase } from '@/domain/dates';
 import { habitProgress } from '@/domain/interval-schedule';
 import { dayProgress, tabTasks } from '@/domain/task-view';
 import type { Reminder, Task } from '@/domain/types';
 import { formatClock } from '@/data/display';
 import { ConcentricRings, Icon } from '@/ui/components';
+import { NextAlert } from './NextAlert';
 
 const AMBER = '#ffd479';
 const RING_TRACK = 'rgb(255 255 255 / 0.22)';
@@ -18,11 +18,8 @@ export interface HeroProps {
   tasks: Task[];
   reminders: Reminder[];
   today: string;
-  now: number;
   greeting: string;
   dateLine: string;
-  /** The soonest repeating-reminder ping, if any. */
-  nextPing: { title: string; emoji: string; at: number } | null;
   paused: boolean;
 }
 
@@ -46,7 +43,7 @@ function Welcome({ greeting, dateLine }: Pick<HeroProps, 'greeting' | 'dateLine'
   );
 }
 
-export function TodayWidget({ tasks, reminders, today, now, greeting, dateLine, nextPing, paused }: HeroProps) {
+export function TodayWidget({ tasks, reminders, today, greeting, dateLine, paused }: HeroProps) {
   if (tasks.length === 0 && reminders.length === 0) return <Welcome greeting={greeting} dateLine={dateLine} />;
 
   const progress = dayProgress(tasks, today);
@@ -96,7 +93,9 @@ export function TodayWidget({ tasks, reminders, today, now, greeting, dateLine, 
         </div>
       </div>
 
-      <div class="mt-3.5 flex flex-wrap gap-2">
+      <NextAlert tasks={tasks} reminders={reminders} />
+
+      <div class="mt-3 flex flex-wrap gap-2">
         {overdue > 0 && (
           <a href="#/tasks/overdue" class="hero-chip">
             <Icon name="alert" size={14} /> {overdue} overdue
@@ -107,16 +106,10 @@ export function TodayWidget({ tasks, reminders, today, now, greeting, dateLine, 
             <span class="size-2 rounded-full bg-[#ffd479]" aria-hidden="true" /> Habits {habits.done}/{habits.target}
           </span>
         )}
-        {paused ? (
+        {paused && (
           <span class="hero-chip">
             <Icon name="pause" size={14} /> Reminders paused
           </span>
-        ) : (
-          nextPing && (
-            <span class="hero-chip">
-              <span aria-hidden="true">{nextPing.emoji}</span> {nextPing.title} {untilPhrase(nextPing.at - now)}
-            </span>
-          )
         )}
       </div>
     </section>
