@@ -1,7 +1,7 @@
 {
   "name": "yaad",
   "type": "module",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "private": true,
   "description": "Gentle interval reminders — water, eyes, posture and your own tasks. Everything stays on your phone.",
   "scripts": {

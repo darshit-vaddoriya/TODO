@@ -1,5 +1,9 @@
 apply plugin: 'com.android.application'
 
+// One version for the web app and the APK: package.json "2.4.1" -> versionName "2.4.1", versionCode 20401.
+def appVersion = new groovy.json.JsonSlurper().parse(file('../../package.json')).version
+def versionParts = appVersion.tokenize('.')*.toInteger()
+
 android {
     namespace "app.yaad.todo"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,13 +11,29 @@ android {
         applicationId "app.yaad.todo"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode versionParts[0] * 10000 + versionParts[1] * 100 + versionParts[2]
+        versionName appVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    // A fixed debug key, committed on purpose: every build is signed the same way, so a new APK
+    // installs over the old one and keeps its data (a fresh key per build forces an uninstall).
+    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+    // yaad-2.4.1-debug.apk
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "yaad-${variant.versionName}-${variant.buildType.name}.apk"
         }
     }
     buildTypes {

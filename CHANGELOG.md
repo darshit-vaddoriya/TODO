@@ -5,6 +5,15 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
+## [2.4.1] — 2026-10-16
+
+### Changed
+- **The APK carries the app's version**: `package.json` "2.4.1" becomes versionName
+  2.4.1 and versionCode 20401, and the file is named `yaad-2.4.1-debug.apk`.
+- **A fixed debug signing key** is used for every build, so a new APK installs over
+  the old one and keeps your tasks (before, each build had a different key and the
+  old app had to be uninstalled first). This is a debug key, not a release key.
+
 ## [2.4.0] — 2026-10-16
 
 ### Changed
