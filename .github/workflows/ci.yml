@@ -46,3 +46,36 @@ jobs:
         with:
           name: yaad-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+  # Boots an emulator, installs the APK and checks it launches without crashing and that a
+  # stored alert really rings while the app is closed. Reports only (does not block a merge)
+  # while it is new; logs and a screenshot are uploaded either way.
+  android-smoke:
+    runs-on: ubuntu-latest
+    needs: android
+    continue-on-error: true
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: yaad-debug-apk
+          path: apk
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Smoke test on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: bash scripts/android-smoke.sh apk/app-debug.apk smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-smoke-logs
+          path: smoke
