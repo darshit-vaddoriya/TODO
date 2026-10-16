@@ -8,6 +8,7 @@ import { initStats } from '@/data/stats';
 import { completeTaskById, getTask, loadTasks, snoozeTask } from '@/data/tasks';
 import { onPwaChange, pendingUpdate } from '@/services/pwa';
 import { startBadge } from '@/services/badge';
+import { startWidget } from '@/services/widget';
 import { startScheduler } from '@/services/scheduler';
 import { toast } from '@/services/toast';
 import { Icon, Toasts } from '@/ui/components';
@@ -175,6 +176,7 @@ export function App() {
       setReady(true);
       startScheduler();
       startBadge();
+      startWidget();
     });
     const offPwa = onPwaChange(() => {
       const reload = pendingUpdate();

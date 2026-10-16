@@ -12,10 +12,14 @@
     "test:watch": "vitest",
     "icons": "node scripts/make-icons.mjs",
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"*.{mjs,ts,json}\" \"scripts/*.mjs\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"*.{mjs,ts,json}\" \"scripts/*.mjs\""
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"*.{mjs,ts,json}\" \"scripts/*.mjs\"",
+    "android:sync": "npm run build && cap sync android",
+    "android:open": "cap open android"
   },
   "dependencies": {
     "@astrojs/preact": "^6.0.6",
+    "@capacitor/app": "^7.1.2",
+    "@capacitor/core": "^7.6.9",
     "@fontsource-variable/manrope": "^5.3.0",
     "astro": "^7.3.8",
     "idb": "^8.0.4",
@@ -23,6 +27,8 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@capacitor/android": "^7.6.9",
+    "@capacitor/cli": "^7.6.9",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.5",
     "@vite-pwa/astro": "^1.2.0",

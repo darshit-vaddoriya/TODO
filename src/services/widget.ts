@@ -1,0 +1,51 @@
+/**
+ * Bridge to the Android home-screen widget. Only active inside the Capacitor app
+ * (the Android build); in a browser every call is a no-op. The app computes a
+ * small summary (domain/widget.ts) and hands it to the native `YaadWidget`
+ * plugin, which stores it and redraws the widget.
+ */
+import { Capacitor, registerPlugin } from '@capacitor/core';
+import { App } from '@capacitor/app';
+import { snapshot as remindersSnapshot, subscribe as subscribeReminders } from '@/data/reminders';
+import { subscribeTasks, tasksSnapshot } from '@/data/tasks';
+import { localDate } from '@/domain/dates';
+import { widgetSummary, type WidgetSummary } from '@/domain/widget';
+
+interface YaadWidgetPlugin {
+  update(summary: WidgetSummary): Promise<void>;
+}
+
+const Native = registerPlugin<YaadWidgetPlugin>('YaadWidget');
+
+export function widgetSupported(): boolean {
+  return Capacitor.getPlatform() === 'android';
+}
+
+let last = '';
+
+/** Send the current summary to the widget (skipped when nothing changed). */
+export async function refreshWidget(): Promise<void> {
+  if (!widgetSupported()) return;
+  const summary = widgetSummary(tasksSnapshot(), remindersSnapshot(), localDate());
+  const key = JSON.stringify(summary);
+  if (key === last) return;
+  last = key;
+  try {
+    await Native.update(summary);
+  } catch {
+    last = ''; // try again on the next change
+  }
+}
+
+/** Keep the widget in step with the data, and open the screen a widget tap asks for (`yaad://task/new`). */
+export function startWidget(): void {
+  if (!widgetSupported()) return;
+  void refreshWidget();
+  subscribeTasks(() => void refreshWidget());
+  subscribeReminders(() => void refreshWidget());
+  void App.addListener('appStateChange', ({ isActive }) => isActive && void refreshWidget());
+  void App.addListener('appUrlOpen', ({ url }) => {
+    const path = url.replace(/^yaad:\/\//, '');
+    location.hash = `#/${path}`;
+  });
+}

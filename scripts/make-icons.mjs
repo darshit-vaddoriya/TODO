@@ -9,7 +9,8 @@
  * (Android themed icons), Apple touch icon, notification badge, shortcut icons,
  * and iOS launch images. The favicon is an SVG in public/.
  */
-import { mkdir, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
@@ -89,6 +90,52 @@ async function png(svg, file, w, h = w) {
   process.stdout.write(`  ${file}\n`);
 }
 
+const ANDROID_RES = join(ROOT, '..', 'android', 'app', 'src', 'main', 'res');
+const DENSITIES = { mdpi: 1, hdpi: 1.5, xhdpi: 2, xxhdpi: 3, xxxhdpi: 4 };
+
+/** Adaptive-icon foreground: glyph inside the central 66% safe zone, transparent elsewhere. */
+function foregroundSvg(size, mono = false) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 100 100">${defs()}
+    <g transform="translate(17 17) scale(0.66)">${glyph({ dot: !mono, id: mono ? 'am' : 'af', fill: '#ffffff' })}</g></svg>`;
+}
+
+/** Launcher icons, adaptive layers and the launch screen for the Capacitor Android app. */
+async function androidAssets() {
+  if (!existsSync(ANDROID_RES)) return;
+  console.log('Generating Android resources:');
+  for (const [name, scale] of Object.entries(DENSITIES)) {
+    const dir = join(ANDROID_RES, `mipmap-${name}`);
+    await mkdir(dir, { recursive: true });
+    const legacy = Math.round(48 * scale);
+    const layer = Math.round(108 * scale);
+    await sharp(Buffer.from(tileSvg(legacy)))
+      .resize(legacy, legacy)
+      .png()
+      .toFile(join(dir, 'ic_launcher.png'));
+    await sharp(Buffer.from(tileSvg(legacy, { radius: 50 })))
+      .resize(legacy, legacy)
+      .png()
+      .toFile(join(dir, 'ic_launcher_round.png'));
+    await sharp(Buffer.from(foregroundSvg(layer)))
+      .resize(layer, layer)
+      .png()
+      .toFile(join(dir, 'ic_launcher_foreground.png'));
+    await sharp(Buffer.from(foregroundSvg(layer, true)))
+      .resize(layer, layer)
+      .png()
+      .toFile(join(dir, 'ic_launcher_monochrome.png'));
+  }
+  // Launch screen: dark field + centred logo (layer-list in drawable/splash.xml). Old per-orientation bitmaps go.
+  for (const dir of ['port', 'land'])
+    for (const d of Object.keys(DENSITIES)) await rm(join(ANDROID_RES, `drawable-${dir}-${d}`), { recursive: true, force: true });
+  await rm(join(ANDROID_RES, 'drawable', 'splash.png'), { force: true });
+  await sharp(Buffer.from(tileSvg(288)))
+    .resize(288, 288)
+    .png()
+    .toFile(join(ANDROID_RES, 'drawable', 'splash_logo.png'));
+  process.stdout.write('  mipmaps, adaptive layers, splash_logo.png\n');
+}
+
 async function main() {
   await mkdir(OUT, { recursive: true });
   console.log('Generating icons:');
@@ -104,6 +151,7 @@ async function main() {
 
   await writeFile(join(ROOT, 'favicon.svg'), tileSvg(64).trim() + '\n');
   process.stdout.write('  favicon.svg\n');
+  await androidAssets();
 }
 
 main().catch((err) => {

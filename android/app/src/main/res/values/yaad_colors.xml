@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="yaad_card">#FFFFFF</color>
+    <color name="yaad_ink">#18211e</color>
+    <color name="yaad_muted">#5f6a65</color>
+    <color name="yaad_track">#dfe5e2</color>
+    <color name="yaad_teal">#0b755f</color>
+    <color name="yaad_info">#2d6aac</color>
+    <color name="yaad_red">#c42c2c</color>
+</resources>
