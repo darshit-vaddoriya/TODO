@@ -8,6 +8,7 @@ import { initStats } from '@/data/stats';
 import { completeTaskById, getTask, loadTasks, snoozeTask } from '@/data/tasks';
 import { onPwaChange, pendingUpdate } from '@/services/pwa';
 import { startBadge } from '@/services/badge';
+import { startNativeNotifications } from '@/services/native-notify';
 import { startWidget } from '@/services/widget';
 import { startScheduler } from '@/services/scheduler';
 import { toast } from '@/services/toast';
@@ -177,6 +178,7 @@ export function App() {
       startScheduler();
       startBadge();
       startWidget();
+      void startNativeNotifications();
     });
     const offPwa = onPwaChange(() => {
       const reload = pendingUpdate();

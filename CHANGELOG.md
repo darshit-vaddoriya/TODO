@@ -5,6 +5,24 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
+## [2.1.0] — 2026-10-16
+
+### Added
+- **Real notifications in the Android app** (`@capacitor/local-notifications`).
+  Task alerts and repeating reminders are scheduled with the phone's alarm
+  system ahead of time, so they ring while Yaad is closed. The plan (next two
+  weeks of task alerts, next two days of pings) respects quiet hours, snooze and
+  Do Not Disturb and is rebuilt whenever your data changes.
+- Snooze / Done buttons on notifications, tapping opens the task, a Reminders
+  channel, and a status-bar icon.
+- Overdue nudges, the morning summary and the test notification post immediately
+  while the app is running.
+
+### Notes
+- Needs the notification permission (and, on newer Android, "Alarms & reminders"
+  for exact timing; otherwise Android may delay a ping by a few minutes).
+- Browsers and the PWA behave as before.
+
 ## [2.0.0] — 2026-10-16
 
 ### Added

@@ -78,7 +78,7 @@ export function alertKey(taskId: string, reminderId: string, moment: number): st
   return `${taskId}:${reminderId}:${moment}`;
 }
 
-const snoozeKey = (taskId: string, until: number) => `snooze:${taskId}:${until}`;
+export const snoozeKey = (taskId: string, until: number) => `snooze:${taskId}:${until}`;
 
 /** Is the clock inside quiet hours? Handles windows that wrap midnight (22:00–07:00). */
 export function inQuietHours(at: number, s: Pick<AlertSettings, 'quietEnabled' | 'quietStart' | 'quietEnd'>): boolean {

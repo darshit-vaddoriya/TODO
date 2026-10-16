@@ -1,17 +1,20 @@
 /** Permission handling and the actual ping: a system notification, plus optional sound and vibration. */
 import type { Reminder } from '@/domain/types';
 import { getPrefs } from '@/data/prefs';
+import { nativeAvailable, nativePermission, nativeRequestPermission, nativeShow } from '@/services/native-notify';
 import { toast } from '@/services/toast';
 
 export function notificationsSupported(): boolean {
-  return typeof Notification !== 'undefined';
+  return nativeAvailable() || typeof Notification !== 'undefined';
 }
 
 export function permission(): NotificationPermission {
+  if (nativeAvailable()) return nativePermission();
   return notificationsSupported() ? Notification.permission : 'denied';
 }
 
 export async function requestPermission(): Promise<NotificationPermission> {
+  if (nativeAvailable()) return nativeRequestPermission();
   if (!notificationsSupported()) return 'denied';
   if (Notification.permission !== 'default') {
     if (Notification.permission === 'granted') void registerCatchUp();
@@ -102,7 +105,8 @@ export async function ping(reminder: Reminder): Promise<void> {
     } as NotificationOptions),
   };
 
-  if (permission() === 'granted') {
+  // In the Android app the alarm system already rang for this (see native-notify.ts); only add sound here.
+  if (!nativeAvailable() && permission() === 'granted') {
     try {
       const reg = await navigator.serviceWorker?.ready;
       if (reg) await reg.showNotification(title, options);
@@ -132,6 +136,12 @@ export interface TaskNotice {
   inApp?: boolean;
   /** Called from the in-app toast's Snooze button. */
   onSnooze?: () => void;
+  /**
+   * The Android app rings task reminders from the alarm system on schedule, so the in-page
+   * scheduler passes `scheduled` for those and only shows the in-app alert. Nudges and the
+   * summary are not pre-scheduled and still post a notification.
+   */
+  scheduled?: boolean;
 }
 
 /**
@@ -148,7 +158,10 @@ export async function deliverTaskNotice(notice: TaskNotice): Promise<void> {
       ...(notice.onSnooze ? { duration: 9000, action: { label: `Snooze ${prefs.snoozeMin}m`, run: notice.onSnooze } } : { duration: 6000 }),
     });
   }
-  if (permission() === 'granted') {
+  if (nativeAvailable()) {
+    if (!notice.scheduled)
+      await nativeShow({ title: notice.title, body: notice.body, tag: notice.tag, taskId: notice.taskId, actions: notice.taskId !== null });
+  } else if (permission() === 'granted') {
     const options: NotificationOptions = {
       body: notice.body,
       icon: '/icons/icon-192.png',
@@ -190,6 +203,16 @@ export async function sendTestNotification(): Promise<'ok' | 'denied' | 'unsuppo
   if (!notificationsSupported()) return 'unsupported';
   const perm = await requestPermission();
   if (perm !== 'granted') return perm === 'denied' ? 'denied' : 'unsupported';
+  if (nativeAvailable()) {
+    await nativeShow({
+      title: '🔔 Test notification',
+      body: 'If you can see this, reminders will reach you, even when Yaad is closed.',
+      tag: 'yaad-test',
+      taskId: null,
+    });
+    buzz(120);
+    return 'ok';
+  }
   const options: NotificationOptions = {
     body: 'If you can see this, reminders will reach you while Yaad is open.',
     icon: '/icons/icon-192.png',

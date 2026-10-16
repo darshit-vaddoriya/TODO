@@ -7,8 +7,8 @@
 import { planAlerts, type TaskAlert } from '@/domain/alerts';
 import type { Task } from '@/domain/types';
 import { dueLabelFor } from '@/data/display';
+import { alertSettings } from '@/data/prefs';
 import { completeTaskById, recordAlerts } from '@/data/tasks';
-import { alertSettings } from '@/services/scheduler';
 import { Icon } from '@/ui/components';
 import { useTasks } from '@/ui/hooks';
 import { go } from '@/ui/router';
