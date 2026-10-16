@@ -26,6 +26,8 @@ export interface ScheduledNotice {
 export const TASK_HORIZON_MS = 14 * 86_400_000;
 export const HABIT_HORIZON_MS = 2 * 86_400_000;
 /** Android allows ~500 pending alarms per app; stay well under it. Frequent reminders only cover the next stretch while closed. */
+/** A ping due within this long is left to the running app. */
+const IMMEDIATE_MS = 5000;
 export const MAX_PER_HABIT = 48;
 export const MAX_SCHEDULED = 200;
 
@@ -67,7 +69,8 @@ export function planScheduled(tasks: Task[], reminders: Reminder[], now: number,
       if (due === null || due > now + HABIT_HORIZON_MS) break;
       const at = audible(due, pausedUntil, s);
       if (at > now + HABIT_HORIZON_MS) break;
-      out.push({ key: `habit:${r.id}:${at}`, kind: 'habit', at, taskId: null, reminderId: r.id, offsetMin: 0 });
+      // Already due: the running app pings it. Scheduling "now" would also make the plan change on every check.
+      if (at > now + IMMEDIATE_MS) out.push({ key: `habit:${r.id}:${at}`, kind: 'habit', at, taskId: null, reminderId: r.id, offsetMin: 0 });
       cursor = { ...r, lastFiredAt: at, snoozedUntil: undefined };
       from = at;
     }

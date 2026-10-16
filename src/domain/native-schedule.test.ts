@@ -77,6 +77,13 @@ describe('planScheduled — repeating reminders', () => {
     expect(plan.every((p) => p.kind === 'habit' && p.reminderId === 'h1')).toBe(true);
   });
 
+  it('leaves a ping that is due right now to the running app, but keeps the chain going', () => {
+    const overdue = habit({ lastFiredAt: NOW - 3 * 3600_000 }); // due long ago
+    const plan = planScheduled([], [overdue], NOW, S);
+    expect(plan.every((p) => p.at > NOW + 5000)).toBe(true);
+    expect(plan.length).toBeGreaterThan(1);
+  });
+
   it('skips disabled reminders and caps each one', () => {
     expect(planScheduled([], [habit({ enabled: false })], NOW, S)).toEqual([]);
     expect(planScheduled([], [habit({ intervalMin: 5 })], NOW, S).length).toBeLessThanOrEqual(MAX_PER_HABIT);

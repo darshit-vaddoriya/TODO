@@ -11,11 +11,13 @@ import { dueInPhrase } from '@/domain/alerts';
 import { planScheduled, type ScheduledNotice } from '@/domain/native-schedule';
 import { localDate } from '@/domain/dates';
 import { formatClock, friendlyDate } from '@/data/display';
-import { alertSettings, getPrefs } from '@/data/prefs';
+import { alertSettings, getPrefs, setPrefs } from '@/data/prefs';
+import { Native } from '@/services/widget';
 import { snapshot as remindersSnapshot, subscribe as subscribeReminders } from '@/data/reminders';
 import { getTask, subscribeTasks, tasksSnapshot } from '@/data/tasks';
 
 const CHANNEL = 'reminders';
+const TEST_KEY = 'yaad-closed-test';
 const ACTIONS = 'task-actions';
 
 export function nativeAvailable(): boolean {
@@ -70,6 +72,64 @@ export async function openExactAlarmSettings(): Promise<void> {
   lastPlan = ''; // re-schedule so pending alarms are re-registered as exact
   void syncScheduled();
 }
+
+export interface NativeStatus {
+  permission: Permission;
+  /** Alarms may ring at the exact minute. */
+  exact: boolean;
+  /** Android lets Yaad run in the background (battery use "Unrestricted"). */
+  batteryUnrestricted: boolean;
+  /** How many alerts the phone currently has scheduled, and when the first one rings. */
+  pending: number;
+  nextAt: number | null;
+}
+
+/** Everything that decides whether a reminder rings while Yaad is closed, for the Settings check. */
+export async function nativeStatus(): Promise<NativeStatus> {
+  let perm: Permission = cachedPermission;
+  try {
+    perm = fromPlugin((await LocalNotifications.checkPermissions()).display);
+    cachedPermission = perm;
+  } catch {
+    // keep the cached value
+  }
+  let batteryUnrestricted = true;
+  try {
+    batteryUnrestricted = (await Native.batteryStatus()).unrestricted;
+  } catch {
+    // older build without the method
+  }
+  let pending = 0;
+  let nextAt: number | null = null;
+  try {
+    const list = (await LocalNotifications.getPending()).notifications;
+    pending = list.length;
+    const times = list.map((n) => n.schedule?.at && new Date(n.schedule.at).getTime()).filter((t): t is number => typeof t === 'number' && t > Date.now());
+    nextAt = times.length ? Math.min(...times) : null;
+  } catch {
+    // leave zero
+  }
+  return { permission: perm, exact: await exactAlarmsAllowed(), batteryUnrestricted, pending, nextAt };
+}
+
+/** Schedule one notification `seconds` from now, to prove closed-app delivery end to end. */
+export async function scheduleTest(seconds = 60): Promise<boolean> {
+  if (cachedPermission !== 'granted') return false;
+  try {
+    const at = Date.now() + seconds * 1000;
+    await LocalNotifications.schedule({
+      notifications: [
+        build(idFor(TEST_KEY), { title: '🔔 Yaad test', body: 'This rang while Yaad was closed. Reminders will reach you.', tag: TEST_KEY, taskId: null }, at),
+      ],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export const openNotificationSettings = () => Native.openNotificationSettings().catch(() => undefined);
+export const openBatterySettings = () => Native.openBatterySettings().catch(() => undefined);
 
 /** A positive 31-bit id from a string key (the plugin needs integer ids). */
 function idFor(key: string): number {
@@ -147,7 +207,8 @@ export async function syncScheduled(): Promise<void> {
     const signature = JSON.stringify(notifications.map((n) => [n.id, n.title, n.body, n.schedule?.at?.getTime()]));
     if (signature === lastPlan) return;
     const pending = await LocalNotifications.getPending();
-    if (pending.notifications.length) await LocalNotifications.cancel({ notifications: pending.notifications.map((n) => ({ id: n.id })) });
+    const mine = pending.notifications.filter((n) => n.id !== idFor(TEST_KEY)); // leave a running test alone
+    if (mine.length) await LocalNotifications.cancel({ notifications: mine.map((n) => ({ id: n.id })) });
     if (notifications.length) await LocalNotifications.schedule({ notifications });
     lastPlan = signature;
   } catch {
@@ -187,6 +248,11 @@ export async function startNativeNotifications(): Promise<void> {
       location.hash = actionId === 'snooze' || actionId === 'done' ? `#/act/${actionId}/${taskId}` : `#/task/${taskId}`;
     });
     cachedPermission = fromPlugin((await LocalNotifications.checkPermissions()).display);
+    // First run on Android 13+: nothing can ring until this is allowed, so ask once, up front.
+    if (cachedPermission === 'default' && !prefs.notifyAsked) {
+      setPrefs({ notifyAsked: true });
+      await nativeRequestPermission();
+    }
   } catch {
     return;
   }

@@ -11,11 +11,15 @@ import { subscribeTasks, tasksSnapshot } from '@/data/tasks';
 import { localDate } from '@/domain/dates';
 import { widgetSummary, type WidgetSummary } from '@/domain/widget';
 
-interface YaadWidgetPlugin {
+/** The app's own native plugin: widget updates plus a few system-settings shortcuts. */
+interface YaadNativePlugin {
   update(summary: WidgetSummary): Promise<void>;
+  openNotificationSettings(): Promise<void>;
+  openBatterySettings(): Promise<void>;
+  batteryStatus(): Promise<{ unrestricted: boolean }>;
 }
 
-const Native = registerPlugin<YaadWidgetPlugin>('YaadWidget');
+export const Native = registerPlugin<YaadNativePlugin>('YaadWidget');
 
 export function widgetSupported(): boolean {
   return Capacitor.getPlatform() === 'android';
