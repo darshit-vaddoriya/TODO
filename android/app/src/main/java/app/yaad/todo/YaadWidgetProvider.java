@@ -157,7 +157,7 @@ public class YaadWidgetProvider extends AppWidgetProvider {
         paint.setStrokeWidth(stroke);
         paint.setStrokeCap(Paint.Cap.ROUND);
 
-        drawRing(canvas, paint, stroke / 2f + 4, size, done, total, ContextCompat.getColor(context, R.color.yaad_teal), ContextCompat.getColor(context, R.color.yaad_track));
+        drawRing(canvas, paint, stroke / 2f + 4, size, done, total, ContextCompat.getColor(context, R.color.yaad_brand), ContextCompat.getColor(context, R.color.yaad_track));
         if (habitsTarget > 0) {
             drawRing(canvas, paint, stroke * 1.5f + 12, size, habitsDone, habitsTarget, ContextCompat.getColor(context, R.color.yaad_info), ContextCompat.getColor(context, R.color.yaad_track));
         }

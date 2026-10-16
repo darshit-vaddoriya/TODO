@@ -62,7 +62,7 @@ export function MissedAlerts({ now }: { now: number }) {
             </button>
             <button
               type="button"
-              class="min-h-9 shrink-0 rounded-full bg-teal px-3.5 text-[0.8125rem] font-bold text-on-teal"
+              class="min-h-9 shrink-0 rounded-full bg-brand px-3.5 text-[0.8125rem] font-bold text-on-brand"
               onClick={() => void completeTaskById(m.task.id)}
             >
               Done

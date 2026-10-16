@@ -39,14 +39,14 @@ function TaskLine({ task, today }: { task: Task; today: string }) {
   const overdue = !!task.dueDate && task.dueDate < today;
   const when = task.dueDate ? dueLabelFor(task.dueDate, task.dueTime, today) : '';
   return (
-    <div class="task-row card flex items-center gap-3 !py-2" data-leaving={leaving}>
+    <div class={`task-row card flex items-center gap-3 !py-2 ${overdue ? 'border-l-4 border-accent' : ''}`} data-leaving={leaving}>
       <Checkbox checked={leaving} popping={leaving} label={`Complete ${task.title}`} onChange={toggle} />
       <a href={`#/task/${task.id}`} class="min-w-0 flex-1 py-1">
         <span class="flex items-center gap-1.5">
           <span class="truncate font-semibold">{task.title}</span>
           {task.priority !== 'none' && <Icon name="flag" size={14} class={PRIORITY_COLOR[task.priority]} />}
         </span>
-        <span class={`flex items-center gap-1 text-[0.75rem] font-semibold ${overdue ? 'text-accent' : task.dueDate === today ? 'text-teal' : 'text-muted'}`}>
+        <span class={`flex items-center gap-1 text-[0.75rem] font-semibold ${overdue ? 'text-accent' : task.dueDate === today ? 'text-brand' : 'text-muted'}`}>
           <Icon name="calendar" size={12} />
           {overdue ? `Overdue · ${when}` : when}
         </span>
@@ -64,7 +64,7 @@ function ReminderTile({ reminder, now, paused }: { reminder: Reminder; now: numb
     <div class="card">
       <div class="flex items-center gap-3">
         <button type="button" class="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => go(`/edit/${reminder.id}`)}>
-          <span class="grid size-11 shrink-0 place-items-center rounded-[14px] bg-field text-2xl" aria-hidden="true">
+          <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-brand/10 text-2xl" aria-hidden="true">
             {reminder.emoji}
           </span>
           <span class="min-w-0 flex-1">
@@ -82,7 +82,7 @@ function ReminderTile({ reminder, now, paused }: { reminder: Reminder; now: numb
               ) : due === null ? (
                 <span class="text-muted">No ping in the next week</span>
               ) : (
-                <span class="text-teal">
+                <span class="text-brand">
                   Next {untilPhrase(due - now)}
                   <span class="text-muted"> · {formatTimeOfDay(new Date(due))}</span>
                 </span>
@@ -114,7 +114,7 @@ function ReminderTile({ reminder, now, paused }: { reminder: Reminder; now: numb
           </button>
           <button
             type="button"
-            class="min-h-9 shrink-0 rounded-full bg-teal px-3.5 text-[0.8125rem] font-bold text-on-teal inline-flex items-center gap-1"
+            class="min-h-9 shrink-0 rounded-full bg-brand px-3.5 text-[0.8125rem] font-bold text-on-brand inline-flex items-center gap-1"
             onClick={() => void markDone(reminder.id)}
           >
             <Icon name="check" size={16} /> Did it
@@ -125,7 +125,7 @@ function ReminderTile({ reminder, now, paused }: { reminder: Reminder; now: numb
   );
 }
 
-const SECTION_LINK = 'flex items-center gap-1 text-[0.8125rem] font-bold text-teal';
+const SECTION_LINK = 'flex items-center gap-1 text-[0.8125rem] font-bold text-brand';
 
 export function Home() {
   const reminders = useReminders();
@@ -178,8 +178,7 @@ export function Home() {
   return (
     <>
       <Header
-        title={greeting(now, getPrefs().name)}
-        sub={longDate(now)}
+        title="Yaad"
         actions={
           <>
             <button
@@ -207,7 +206,11 @@ export function Home() {
               All reminders paused
               <span class="block text-[0.8125rem] font-normal text-muted">Resumes {formatTimeOfDay(new Date(pausedUntil))}</span>
             </p>
-            <button type="button" class="min-h-9 shrink-0 rounded-full bg-teal px-3.5 text-[0.8125rem] font-bold text-on-teal" onClick={() => doPause(resume)}>
+            <button
+              type="button"
+              class="min-h-9 shrink-0 rounded-full bg-brand px-3.5 text-[0.8125rem] font-bold text-on-brand"
+              onClick={() => doPause(resume)}
+            >
               Resume
             </button>
           </div>
@@ -242,12 +245,18 @@ export function Home() {
 
         <MissedAlerts now={now} />
 
-        {/* Today widget */}
-        {(tasks.length > 0 || reminders.length > 0) && (
-          <Section>
-            <TodayWidget tasks={tasks} reminders={reminders} today={today} />
-          </Section>
-        )}
+        <Section>
+          <TodayWidget
+            tasks={tasks}
+            reminders={reminders}
+            today={today}
+            now={now}
+            greeting={greeting(now, getPrefs().name)}
+            dateLine={longDate(now)}
+            nextPing={upcoming ? { title: upcoming.r.title, emoji: upcoming.r.emoji, at: upcoming.at } : null}
+            paused={dnd}
+          />
+        </Section>
 
         {focus.length > 0 && (
           <Section
@@ -285,15 +294,25 @@ export function Home() {
 
         {/* Repeating (interval) reminders */}
         {reminders.length === 0 && tasks.length === 0 ? (
-          <Section>
-            <Empty icon="sparkles" title="Nothing here yet" body="Add your first task, or set a gentle repeating reminder — water, eyes, posture.">
-              <a href="#/task/new" class="btn btn-primary">
-                <Icon name="plus" size={18} /> Add a task
-              </a>
-              <a href="#/presets" class="btn btn-quiet">
-                <Icon name="sparkles" size={18} /> Wellness presets
-              </a>
-            </Empty>
+          <Section title="Get started">
+            <div class="card ruled !p-0">
+              {[
+                { href: '#/task/new', icon: 'check-circle', title: 'Add your first task', sub: 'A title is enough — add a date and a reminder if you like.' },
+                { href: '#/presets', icon: 'sparkles', title: 'Try a wellness preset', sub: 'Water, eye breaks, posture — repeating gentle pings.' },
+                { href: '#/calendar', icon: 'calendar', title: 'Open the calendar', sub: 'See everything by day and add a task on any date.' },
+              ].map((row) => (
+                <a key={row.href} href={row.href} class="flex min-h-16 items-center gap-3 px-4 py-3">
+                  <span class="grid size-11 shrink-0 place-items-center rounded-2xl bg-brand/10 text-brand">
+                    <Icon name={row.icon} size={21} />
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block font-extrabold tracking-[-0.01em]">{row.title}</span>
+                    <span class="block text-[0.8125rem] leading-snug text-muted">{row.sub}</span>
+                  </span>
+                  <Icon name="back" size={16} class="rotate-180 text-muted" />
+                </a>
+              ))}
+            </div>
           </Section>
         ) : (
           <>
@@ -303,7 +322,7 @@ export function Home() {
                 <span class="flex items-center gap-3">
                   {!dnd && upcoming && (
                     <span class="flex items-center gap-1 text-[0.8125rem] font-semibold text-muted">
-                      <Icon name="clock" size={14} class="text-teal" /> next {untilPhrase(upcoming.at - now)}
+                      <Icon name="clock" size={14} class="text-brand" /> next {untilPhrase(upcoming.at - now)}
                     </span>
                   )}
                   <a href="#/edit" class={SECTION_LINK}>
@@ -315,7 +334,7 @@ export function Home() {
               {reminders.length === 0 ? (
                 <div class="card text-[0.9375rem] text-muted">
                   Repeating pings for habits like water and eye breaks.{' '}
-                  <a href="#/presets" class="font-bold text-teal">
+                  <a href="#/presets" class="font-bold text-brand">
                     Browse presets
                   </a>
                 </div>
@@ -339,7 +358,7 @@ export function Home() {
             )}
             {reminders.length > 0 && (
               <Section>
-                <a href="#/presets" class="flex items-center justify-center gap-2 text-[0.9375rem] font-bold text-teal">
+                <a href="#/presets" class="flex items-center justify-center gap-2 text-[0.9375rem] font-bold text-brand">
                   <Icon name="sparkles" size={18} /> Browse wellness presets
                 </a>
               </Section>

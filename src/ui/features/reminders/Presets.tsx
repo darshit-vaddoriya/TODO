@@ -25,7 +25,7 @@ function PresetCard({ preset, added }: { preset: Preset; added: boolean }) {
       </span>
       <div class="min-w-0 flex-1">
         <p class="font-extrabold tracking-[-0.01em]">{preset.title}</p>
-        <p class="text-[0.8125rem] font-semibold text-teal">
+        <p class="text-[0.8125rem] font-semibold text-brand">
           {everyPhrase(preset.intervalMin)} · {formatClock(preset.startTime)}–{formatClock(preset.endTime)}
         </p>
         <p class="mt-1 text-[0.8125rem] leading-snug text-muted">{preset.evidence}</p>
@@ -67,7 +67,7 @@ export function Presets() {
           </div>
         </Section>
         <Section>
-          <button type="button" class="flex w-full items-center justify-center gap-2 text-[0.9375rem] font-bold text-teal" onClick={() => go('/edit')}>
+          <button type="button" class="flex w-full items-center justify-center gap-2 text-[0.9375rem] font-bold text-brand" onClick={() => go('/edit')}>
             <Icon name="plus" size={18} /> Create your own instead
           </button>
         </Section>

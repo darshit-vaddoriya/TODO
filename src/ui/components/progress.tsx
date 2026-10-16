@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'preact/hooks';
 export interface RingSpec {
   done: number;
   total: number;
-  /** A CSS colour, normally a theme variable such as "var(--teal)". */
+  /** A CSS colour, normally a theme variable such as "var(--brand)". */
   color: string;
 }
 
@@ -14,7 +14,20 @@ export interface RingSpec {
  * the outermost. Whatever is passed as children sits in the middle. Drawn with
  * SVG attributes only, so the strict CSP (no inline styles) is satisfied.
  */
-export function ConcentricRings({ rings, size = 112, label, children }: { rings: RingSpec[]; size?: number; label: string; children?: ComponentChildren }) {
+export function ConcentricRings({
+  rings,
+  size = 112,
+  label,
+  track = 'var(--field)',
+  children,
+}: {
+  rings: RingSpec[];
+  size?: number;
+  label: string;
+  /** Colour of the empty part of each ring. */
+  track?: string;
+  children?: ComponentChildren;
+}) {
   const stroke = 10;
   const gap = 4;
   const mid = size / 2;
@@ -27,7 +40,7 @@ export function ConcentricRings({ rings, size = 112, label, children }: { rings:
           const ratio = ring.total > 0 ? Math.min(1, ring.done / ring.total) : 0;
           return (
             <g key={i}>
-              <circle cx={mid} cy={mid} r={r} fill="none" stroke="var(--field)" stroke-width={stroke} />
+              <circle cx={mid} cy={mid} r={r} fill="none" stroke={track} stroke-width={stroke} />
               {ratio > 0 && (
                 <circle
                   cx={mid}
@@ -60,7 +73,7 @@ export function Meter({ ratio, label }: { ratio: number; label: string }) {
   }, [ratio]);
   return (
     <span class="block h-1.5 w-full overflow-hidden rounded-full bg-field" role="img" aria-label={label}>
-      <span ref={fill} class="block h-full rounded-full bg-teal transition-[width] duration-500" />
+      <span ref={fill} class="block h-full rounded-full bg-brand transition-[width] duration-500" />
     </span>
   );
 }

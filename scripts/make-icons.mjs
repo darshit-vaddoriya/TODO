@@ -3,7 +3,7 @@
  * assets in git. Run with `npm run icons` (also runs automatically before a build).
  *
  * Logo: a white bell with a check mark cut out of it and a small amber alert dot,
- * on a deep teal tile — "a reminder you can tick off".
+ * on an indigo tile — "a reminder you can tick off".
  *
  * Outputs (public/icons): any-purpose 192/512, maskable 512, monochrome 512
  * (Android themed icons), Apple touch icon, notification badge, shortcut icons,
@@ -17,10 +17,10 @@ import sharp from 'sharp';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', 'public');
 const OUT = join(ROOT, 'icons');
-const TEAL = '#12a085';
-const TEAL_DEEP = '#075a4a';
+const BRAND = '#6366f1';
+const BRAND_DEEP = '#312e81';
 const AMBER = '#ffb020';
-const PAPER = '#0b0f0e';
+const PAPER = '#0e1020';
 
 const BELL = 'M29 68 V47 a21 21 0 0 1 42 0 V68 l7 7 H22 Z';
 const CHECK = 'M40.5 52 L47.5 59 L60 43';
@@ -35,11 +35,11 @@ function glyph({ fill = '#ffffff', dot = true, id = 'cut' } = {}) {
     <g mask="url(#${id})"><path d="${BELL}" fill="${fill}" stroke="${fill}" stroke-width="2" stroke-linejoin="round"/></g>
     <circle cx="50" cy="82" r="6" fill="${fill}"/>
     <rect x="47" y="21" width="6" height="6" rx="3" fill="${fill}"/>
-    ${dot ? `<circle cx="73" cy="27" r="10" fill="${AMBER}" stroke="${TEAL_DEEP}" stroke-width="3.5"/>` : ''}`;
+    ${dot ? `<circle cx="73" cy="27" r="10" fill="${AMBER}" stroke="${BRAND_DEEP}" stroke-width="3.5"/>` : ''}`;
 }
 
 function defs() {
-  return `<defs><linearGradient id="g" x1="0" y1="0" x2="0.9" y2="1"><stop offset="0" stop-color="${TEAL}"/><stop offset="1" stop-color="${TEAL_DEEP}"/></linearGradient></defs>`;
+  return `<defs><linearGradient id="g" x1="0" y1="0" x2="0.9" y2="1"><stop offset="0" stop-color="${BRAND}"/><stop offset="1" stop-color="${BRAND_DEEP}"/></linearGradient></defs>`;
 }
 
 /** Full tile. `inset` shrinks the glyph (maskable safe zone); `radius` rounds the tile. */

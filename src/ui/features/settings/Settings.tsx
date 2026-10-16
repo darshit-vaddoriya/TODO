@@ -211,7 +211,7 @@ export function Settings() {
           <div class="card ruled">
             {install === 'installed' ? (
               <SettingRow icon="phone" label="Installed" hint="Yaad is running as an app on this device.">
-                <Icon name="check" size={20} class="text-teal" />
+                <Icon name="check" size={20} class="text-brand" />
               </SettingRow>
             ) : install === 'available' ? (
               <SettingRow
@@ -243,14 +243,14 @@ export function Settings() {
         <Section title="How reminders work">
           <div class="card space-y-3 text-[0.875rem] leading-snug text-muted">
             <p class="flex gap-2.5">
-              <Icon name="clock" size={18} class="mt-0.5 shrink-0 text-teal" />
+              <Icon name="clock" size={18} class="mt-0.5 shrink-0 text-brand" />
               <span>
                 Reminders fire on time while Yaad is open — including as an installed app kept running in the background. When it’s closed, the web can’t wake
                 itself at an exact minute; anything missed is shown when you reopen it. See Reminder settings for details.
               </span>
             </p>
             <p class="flex gap-2.5">
-              <Icon name="shield" size={18} class="mt-0.5 shrink-0 text-teal" />
+              <Icon name="shield" size={18} class="mt-0.5 shrink-0 text-brand" />
               <span>Everything is stored on this device only. No account, no servers, nothing sent anywhere.</span>
             </p>
           </div>

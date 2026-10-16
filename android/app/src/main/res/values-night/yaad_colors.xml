@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="yaad_card">#151c1a</color>
-    <color name="yaad_ink">#e7efec</color>
-    <color name="yaad_muted">#9aa8a2</color>
-    <color name="yaad_track">#2a3531</color>
-    <color name="yaad_teal">#4fd6b4</color>
-    <color name="yaad_info">#7db4ee</color>
+    <color name="yaad_card">#161934</color>
+    <color name="yaad_ink">#eceefc</color>
+    <color name="yaad_muted">#9aa0c2</color>
+    <color name="yaad_track">#2a2f58</color>
+    <color name="yaad_brand">#a5b4fc</color>
+    <color name="yaad_info">#5cc8e6</color>
     <color name="yaad_red">#ff8a80</color>
 </resources>

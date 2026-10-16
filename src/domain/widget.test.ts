@@ -16,7 +16,7 @@ describe('widgetSummary', () => {
       task({ title: 'Later', dueDate: '2026-06-20' }, 4),
     ];
     const s = widgetSummary(tasks, [], TODAY);
-    expect(s.next.map((n) => n.title)).toEqual(['Late', 'No time', 'Morning']);
+    expect(s.next.map((n) => n.title)).toEqual(['Late', 'Morning', 'Evening']);
     expect(s.next[0]?.overdue).toBe(true);
     expect(s.overdue).toBe(1);
     expect(s.tasksTotal).toBe(4);

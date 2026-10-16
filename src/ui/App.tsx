@@ -159,7 +159,7 @@ function Nav({ current, bar }: { current: string; bar: boolean }) {
         <a
           href="#/task/new"
           aria-label="Add task"
-          class="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-30 grid size-14 place-items-center rounded-2xl bg-teal text-on-teal shadow-lg active:scale-95 lg:hidden"
+          class="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-30 grid size-14 place-items-center rounded-2xl bg-brand text-on-brand shadow-lg active:scale-95 lg:hidden"
         >
           <Icon name="plus" size={28} />
         </a>

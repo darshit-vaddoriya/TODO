@@ -50,8 +50,8 @@ describe.each([
       'field',
       'ink',
       'muted',
-      'teal',
-      'on-teal',
+      'brand',
+      'on-brand',
       'accent',
       'on-accent',
       'haldi',
@@ -70,22 +70,40 @@ describe.each([
   });
 
   it.each(BACKGROUNDS)('semantic text colours are readable on %s', (bg) => {
-    for (const k of ['teal', 'accent', 'haldi', 'info', 'positive']) {
+    for (const k of ['brand', 'accent', 'haldi', 'info', 'positive']) {
       expect(contrast(t[k], t[bg]), `--${k} on ${bg}`).toBeGreaterThanOrEqual(AA_TEXT);
     }
   });
 
   it('text on filled buttons and chips is readable', () => {
-    expect(contrast(t['on-teal'], t.teal)).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(contrast(t['on-brand'], t.brand)).toBeGreaterThanOrEqual(AA_TEXT);
     expect(contrast(t['on-accent'], t.accent)).toBeGreaterThanOrEqual(AA_TEXT);
     expect(contrast(t['on-haldi'], t.haldi)).toBeGreaterThanOrEqual(AA_TEXT);
   });
 
   it('controls are distinguishable from the surfaces they sit on (3:1)', () => {
-    expect(contrast(t.teal, t.surface)).toBeGreaterThanOrEqual(AA_UI);
-    expect(contrast(t.teal, t.paper)).toBeGreaterThanOrEqual(AA_UI);
+    expect(contrast(t.brand, t.surface)).toBeGreaterThanOrEqual(AA_UI);
+    expect(contrast(t.brand, t.paper)).toBeGreaterThanOrEqual(AA_UI);
     expect(contrast(t.control, t.surface)).toBeGreaterThanOrEqual(AA_UI);
     expect(contrast(t.control, t.paper)).toBeGreaterThanOrEqual(AA_UI);
+  });
+});
+
+/** White text on the Home hero gradient, including the translucent chips drawn over it. */
+describe.each([
+  ['light', light],
+  ['dark', dark],
+] as const)('%s hero gradient', (_name, t) => {
+  const over = (alpha: number, base: string) => {
+    const mix = (shift: number) => Math.round(255 * alpha + ((parseInt(base.slice(1), 16) >> shift) & 255) * (1 - alpha));
+    return `#${[16, 8, 0].map((sh) => mix(sh).toString(16).padStart(2, '0')).join('')}`;
+  };
+  it.each(['hero-from', 'hero-to'])('white text is readable on --%s and on a chip over it', (k) => {
+    expect(contrast('#ffffff', t[k])).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(contrast('#ffffff', over(0.14, t[k]))).toBeGreaterThanOrEqual(AA_TEXT);
+  });
+  it('the amber ring is visible on the gradient', () => {
+    expect(contrast('#ffd479', t['hero-from'])).toBeGreaterThanOrEqual(AA_UI);
   });
 });
 

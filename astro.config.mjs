@@ -5,7 +5,7 @@ import preact from '@astrojs/preact';
 import tailwindcss from '@tailwindcss/vite';
 import AstroPWA from '@vite-pwa/astro';
 
-const PAPER = '#0b0f0e';
+const PAPER = '#0e1020';
 
 export default defineConfig({
   output: 'static',

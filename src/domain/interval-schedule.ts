@@ -90,3 +90,18 @@ export function habitProgress(reminders: Reminder[], today: string): { done: num
   }
   return { done, target };
 }
+
+/**
+ * The anchor to store after a ping that fired at `now`. A ping is noticed by a
+ * check that runs every ~20 seconds, so storing `now` would push every later ping
+ * a little later and a 5-minute reminder would slowly become 5:15. When the ping
+ * was merely a little late and its scheduled moment was inside the active
+ * window, keep the scheduled moment so the cadence stays exactly one interval.
+ */
+export function nextAnchor(r: Reminder, now: number): number {
+  const scheduled = (r.lastFiredAt ?? now) + r.intervalMin * 60000;
+  const late = now - scheduled;
+  if (late < 0 || late >= r.intervalMin * 60000) return now;
+  if (r.snoozedUntil && r.snoozedUntil > scheduled) return now;
+  return withinWindow(r, new Date(scheduled)) ? scheduled : now;
+}
