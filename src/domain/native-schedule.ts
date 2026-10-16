@@ -25,8 +25,9 @@ export interface ScheduledNotice {
 
 export const TASK_HORIZON_MS = 14 * 86_400_000;
 export const HABIT_HORIZON_MS = 2 * 86_400_000;
-export const MAX_PER_HABIT = 12;
-export const MAX_SCHEDULED = 60;
+/** Android allows ~500 pending alarms per app; stay well under it. Frequent reminders only cover the next stretch while closed. */
+export const MAX_PER_HABIT = 48;
+export const MAX_SCHEDULED = 200;
 
 /** The first moment at or after `at` that is past Do Not Disturb and outside quiet hours. */
 function audible(at: number, pausedUntil: number, s: AlertSettings): number {

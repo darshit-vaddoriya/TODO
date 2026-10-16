@@ -10,7 +10,7 @@
  */
 import { dueInPhrase, planAlerts, planSummary, type TaskAlert } from '@/domain/alerts';
 import { localDate } from '@/domain/dates';
-import { isDue } from '@/domain/interval-schedule';
+import { isDue, nextAnchor } from '@/domain/interval-schedule';
 import type { Reminder, Task } from '@/domain/types';
 import { setMeta } from '@/data/db';
 import { friendlyDate, formatClock } from '@/data/display';
@@ -129,7 +129,7 @@ async function tickReminders(now: number): Promise<void> {
     if (!paused && isDue(r, now)) {
       void ping(r);
       void bump('reminders');
-      updates.push({ ...r, lastFiredAt: now, firedToday: r.firedToday + 1, firedTodayDate: today });
+      updates.push({ ...r, lastFiredAt: nextAnchor(r, now), firedToday: r.firedToday + 1, firedTodayDate: today });
     } else if (r !== current) {
       // Only the date rolled over; persist the reset count.
       updates.push(r);

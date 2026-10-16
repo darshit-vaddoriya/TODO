@@ -10,6 +10,8 @@ import { Dialog, Field, Header, Icon, Page, Switch } from '@/ui/components';
 import { back, go } from '@/ui/router';
 
 const EMOJIS = ['⏰', '💧', '👀', '🧍', '🤸', '🪑', '🫁', '💊', '🍎', '🧘', '🚶', '📞', '📨', '🦷', '🌿', '☕'];
+/** Longest custom interval: once a day. */
+const MAX_CUSTOM_MIN = 1440;
 const ALL_DAYS: Weekday[] = [0, 1, 2, 3, 4, 5, 6];
 
 export function ReminderForm({ id }: { id?: string }) {
@@ -22,13 +24,17 @@ export function ReminderForm({ id }: { id?: string }) {
   const set = <K extends keyof Reminder>(key: K, value: Reminder[K]) => setR((prev) => ({ ...prev, [key]: value }));
 
   const perDay = useMemo(() => pingsPerDay(r), [r.intervalMin, r.startTime, r.endTime]);
-  const validInterval = r.intervalMin >= 1;
+  // An empty or zero custom box can't be saved (it would silently keep the previous interval).
+  const customOk = custom === '' || parseInt(custom, 10) >= 1;
+  const validInterval = r.intervalMin >= 1 && customOk;
   const validWindow = r.startTime < r.endTime;
   const canSave = r.title.trim().length > 0 && validInterval && validWindow;
 
   const onSave = async () => {
     if (!canSave) return;
-    await save({ ...r, title: r.title.trim() });
+    // A new interval starts counting from now, not from the old schedule (which could make it ping immediately).
+    const reanchor = existing && existing.intervalMin !== r.intervalMin ? { lastFiredAt: Date.now(), snoozedUntil: null } : {};
+    await save({ ...r, ...reanchor, title: r.title.trim() });
     toast(isNew ? 'Reminder added' : 'Saved');
     back();
   };
@@ -89,7 +95,14 @@ export function ReminderForm({ id }: { id?: string }) {
         </div>
 
         {/* Interval */}
-        <Field label="Remind me" hint={validWindow && perDay > 0 ? `About ${perDay} ${perDay === 1 ? 'ping' : 'pings'} a day in this window.` : undefined}>
+        <Field
+          label="Remind me"
+          hint={
+            validWindow && perDay > 0
+              ? `Every ${formatInterval(r.intervalMin)} — about ${perDay} ${perDay === 1 ? 'ping' : 'pings'} a day in this window.${r.intervalMin < 5 ? ' Very short intervals only ring on time for the next few hours while the app is closed.' : ''}`
+              : undefined
+          }
+        >
           <div class="flex flex-wrap gap-2">
             {INTERVAL_PRESETS.map((m) => (
               <button
@@ -112,15 +125,15 @@ export function ReminderForm({ id }: { id?: string }) {
                 type="number"
                 inputMode="numeric"
                 min={1}
-                max={1440}
+                max={MAX_CUSTOM_MIN}
                 class="w-14 bg-transparent text-center font-bold outline-none"
                 placeholder="min"
                 value={custom}
                 onInput={(e) => {
                   const v = e.currentTarget.value;
-                  setCustom(v);
                   const n = parseInt(v, 10);
-                  if (n >= 1) set('intervalMin', n);
+                  setCustom(n > MAX_CUSTOM_MIN ? String(MAX_CUSTOM_MIN) : v);
+                  if (n >= 1) set('intervalMin', Math.min(n, MAX_CUSTOM_MIN));
                 }}
               />
               <span>min</span>

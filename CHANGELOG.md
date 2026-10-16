@@ -5,6 +5,21 @@ All notable changes to Yaad are documented here. The format follows
 [semantic versioning](https://semver.org/). The current version is also shown
 in the app's Settings screen and written into backup files.
 
+## [2.1.1] — 2026-10-16
+
+### Changed
+- **Custom reminder intervals** (any 1–1440 minutes) are sturdier: the box can't
+  be saved empty or at 0, a number above a day is capped, and the form states
+  the result ("Every 7m — about 103 pings a day").
+- **Exact cadence**: a repeating reminder keeps its rhythm instead of drifting a
+  few seconds later with every ping (the check that notices it runs every ~20 s).
+- Changing a reminder's interval restarts the count from now, so it no longer
+  pings straight away because of the old schedule.
+- Android: up to 48 upcoming pings per reminder (200 in all) are scheduled while
+  the app is closed, so short intervals cover several hours. Very short
+  intervals (under 5 minutes) only ring on time for that stretch until you open
+  Yaad again.
+
 ## [2.1.0] — 2026-10-16
 
 ### Added

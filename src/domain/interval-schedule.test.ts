@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { habitProgress, isDue, nextDueAt, pingsPerDay, withinWindow } from '@/domain/interval-schedule';
+import { habitProgress, isDue, nextAnchor, nextDueAt, pingsPerDay, withinWindow } from '@/domain/interval-schedule';
 import type { Reminder } from '@/domain/types';
 
 /** A reminder fixture; override whatever a test needs. */
@@ -136,5 +136,25 @@ describe('habitProgress', () => {
 
   it('is zero with no reminders', () => {
     expect(habitProgress([], '2026-06-18')).toEqual({ done: 0, target: 0 });
+  });
+});
+
+describe('nextAnchor', () => {
+  it('keeps the exact cadence when a ping is noticed a little late', () => {
+    const last = at(2026, 1, 5, 10);
+    const r = make({ intervalMin: 5, lastFiredAt: last });
+    expect(nextAnchor(r, last + 5 * 60000 + 14000)).toBe(last + 5 * 60000);
+  });
+
+  it('re-anchors to now after a long gap, a snooze, or a ping outside the window', () => {
+    const last = at(2026, 1, 5, 10);
+    const r = make({ intervalMin: 5, lastFiredAt: last });
+    const gap = last + 40 * 60000;
+    expect(nextAnchor(r, gap)).toBe(gap);
+    const snoozed = last + 5 * 60000 + 3000;
+    expect(nextAnchor({ ...r, snoozedUntil: snoozed }, snoozed + 1000)).toBe(snoozed + 1000);
+    const edge = make({ intervalMin: 5, lastFiredAt: at(2026, 1, 5, 21, 57) });
+    const late = at(2026, 1, 5, 22, 3);
+    expect(nextAnchor(edge, late)).toBe(late); // scheduled 22:02 is past the 22:00 window end
   });
 });
